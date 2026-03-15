@@ -29,7 +29,8 @@ class RecipesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final recipesAsync = ref.watch(recipesProvider);
 
-    return RefreshIndicator(
+    return Scaffold(
+      body: RefreshIndicator(
       onRefresh: () async => ref.invalidate(recipesProvider),
       child: recipesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -104,6 +105,12 @@ class RecipesScreen extends ConsumerWidget {
             }).toList(),
           );
         },
+      ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.gold,
+        onPressed: () => context.go('/recipes/new'),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

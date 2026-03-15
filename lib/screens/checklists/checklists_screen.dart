@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/checklist.dart';
+import '../../models/profile.dart';
 import '../../providers/auth_provider.dart';
 
 final checklistsProvider = FutureProvider<List<ChecklistTemplate>>((ref) async {
@@ -29,7 +30,17 @@ class ChecklistsScreen extends ConsumerWidget {
     final checklistsAsync = ref.watch(checklistsProvider);
     final profile = ref.watch(profileProvider).value;
 
-    return RefreshIndicator(
+    final isManager = profile?.role == UserRole.owner || profile?.role == UserRole.manager;
+
+    return Scaffold(
+      floatingActionButton: isManager
+          ? FloatingActionButton(
+              backgroundColor: AppColors.gold,
+              onPressed: () => context.go('/checklists/new'),
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+      body: RefreshIndicator(
       onRefresh: () async => ref.invalidate(checklistsProvider),
       child: checklistsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -112,6 +123,9 @@ class ChecklistsScreen extends ConsumerWidget {
           );
         },
       ),
+      ),
     );
   }
 }
+
+

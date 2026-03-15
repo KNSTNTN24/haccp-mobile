@@ -10,6 +10,8 @@ import '../screens/checklists/checklists_screen.dart';
 import '../screens/checklists/checklist_detail_screen.dart';
 import '../screens/recipes/recipes_screen.dart';
 import '../screens/recipes/recipe_detail_screen.dart';
+import '../screens/recipes/recipe_new_screen.dart';
+import '../screens/checklists/checklist_manage_screen.dart';
 import '../screens/menu/allergen_matrix_screen.dart';
 import '../screens/diary/diary_screen.dart';
 import '../screens/incidents/incidents_screen.dart';
@@ -74,6 +76,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
             routes: [
               GoRoute(
+                path: 'new',
+                builder: (context, state) => const ChecklistManageScreen(),
+              ),
+              GoRoute(
                 path: ':id',
                 builder: (context, state) => ChecklistDetailScreen(
                   templateId: state.pathParameters['id']!,
@@ -87,6 +93,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: RecipesScreen(),
             ),
             routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const RecipeNewScreen(),
+              ),
               GoRoute(
                 path: ':id',
                 builder: (context, state) => RecipeDetailScreen(
