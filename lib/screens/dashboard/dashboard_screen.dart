@@ -351,17 +351,17 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _Stat('Checklists', stats.totalChecklists, Icons.checklist_rounded,
-          const Color(0xFF2563EB), '/checklists'),
+          const Color(0xFF2563EB), const Color(0xFFEFF6FF), '/checklists'),
       _Stat('Completed', stats.todayCompletions, Icons.task_alt_rounded,
-          const Color(0xFF10B981), '/diary'),
+          const Color(0xFF059669), const Color(0xFFECFDF5), '/diary'),
       _Stat('Recipes', stats.totalRecipes, Icons.restaurant_rounded,
-          const Color(0xFFEA580C), '/recipes'),
+          const Color(0xFFEA580C), const Color(0xFFFFF7ED), '/recipes'),
       _Stat('Incidents', stats.openIncidents, Icons.warning_rounded,
-          const Color(0xFFDC2626), '/incidents'),
+          const Color(0xFFDC2626), const Color(0xFFFEF2F2), '/incidents'),
       _Stat('Team', stats.teamMembers, Icons.people_rounded,
-          const Color(0xFF7C3AED), '/team'),
+          const Color(0xFF7C3AED), const Color(0xFFF5F3FF), '/team'),
       _Stat('Alerts', stats.unreadNotifications, Icons.notifications_active_rounded,
-          const Color(0xFFF59E0B), '/notifications'),
+          const Color(0xFFD97706), const Color(0xFFFFFBEB), '/notifications'),
     ];
 
     return Column(
@@ -386,8 +386,9 @@ class _Stat {
   final int value;
   final IconData icon;
   final Color color;
+  final Color bg;
   final String route;
-  const _Stat(this.label, this.value, this.icon, this.color, this.route);
+  const _Stat(this.label, this.value, this.icon, this.color, this.bg, this.route);
 }
 
 class _StatTile extends StatelessWidget {
@@ -396,60 +397,76 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAlert = data.label == 'Incidents' && data.value > 0;
+    final hasIssue = data.label == 'Incidents' && data.value > 0;
 
     return GestureDetector(
       onTap: () => context.go(data.route),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isAlert
-                ? data.color.withValues(alpha: 0.25)
-                : const Color(0xFFE5E7EB),
-          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon — plain circle, no square box
-            Icon(data.icon, size: 28, color: data.color),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${data.value}',
-                    style: GoogleFonts.inter(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.darkText,
-                      height: 1.1,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Colored dot accent
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: data.bg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(data.icon, size: 20, color: data.color),
+                ),
+                if (hasIssue)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: data.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Open',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: data.color,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 1),
-                  Text(
-                    data.label,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.midText,
-                    ),
-                  ),
-                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '${data.value}',
+              style: GoogleFonts.inter(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkText,
+                height: 1,
               ),
             ),
-            if (isAlert)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: data.color,
-                  shape: BoxShape.circle,
-                ),
+            const SizedBox(height: 4),
+            Text(
+              data.label,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.midText,
               ),
+            ),
           ],
         ),
       ),

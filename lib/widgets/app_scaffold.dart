@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -10,11 +12,11 @@ class AppScaffold extends ConsumerWidget {
   const AppScaffold({super.key, required this.child});
 
   static const _tabs = [
-    _TabItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Dashboard', path: '/dashboard'),
-    _TabItem(icon: Icons.checklist_outlined, activeIcon: Icons.checklist, label: 'Checklists', path: '/checklists'),
-    _TabItem(icon: Icons.restaurant_menu_outlined, activeIcon: Icons.restaurant_menu, label: 'Recipes', path: '/recipes'),
-    _TabItem(icon: Icons.menu_book_outlined, activeIcon: Icons.menu_book, label: 'Menu', path: '/menu'),
-    _TabItem(icon: Icons.more_horiz_outlined, activeIcon: Icons.more_horiz, label: 'More', path: '/more'),
+    _TabItem(icon: Icons.grid_view_rounded, activeIcon: Icons.grid_view_rounded, label: 'Home', path: '/dashboard'),
+    _TabItem(icon: Icons.checklist_rounded, activeIcon: Icons.checklist_rounded, label: 'Checks', path: '/checklists'),
+    _TabItem(icon: Icons.restaurant_rounded, activeIcon: Icons.restaurant_rounded, label: 'Recipes', path: '/recipes'),
+    _TabItem(icon: Icons.egg_alt_rounded, activeIcon: Icons.egg_alt_rounded, label: 'Menu', path: '/menu'),
+    _TabItem(icon: Icons.more_horiz_rounded, activeIcon: Icons.more_horiz_rounded, label: 'More', path: '/more'),
   ];
 
   int _currentIndex(String location) {
@@ -35,17 +37,18 @@ class AppScaffold extends ConsumerWidget {
     final currentIdx = _currentIndex(location);
     final profile = ref.watch(profileProvider).value;
     final business = ref.watch(businessProvider).value;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(business?.name ?? 'HACCP Manager'),
+        title: Text(business?.name ?? 'HACCP'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
+            icon: const Icon(Icons.notifications_none_rounded, size: 24),
             onPressed: () => context.go('/notifications'),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded, size: 22),
             onPressed: () async {
               await ref.read(authNotifierProvider.notifier).signOut();
               if (context.mounted) context.go('/login');
@@ -54,22 +57,50 @@ class AppScaffold extends ConsumerWidget {
         ],
       ),
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIdx,
-        onTap: (index) {
-          if (index == 4) {
-            _showMoreMenu(context, profile?.role.name ?? 'kitchen_staff');
-          } else {
-            context.go(_tabs[index].path);
-          }
-        },
-        items: _tabs.map((tab) {
-          return BottomNavigationBarItem(
-            icon: Icon(tab.icon),
-            activeIcon: Icon(tab.activeIcon),
-            label: tab.label,
-          );
-        }).toList(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+            child: Row(
+              children: _tabs.asMap().entries.map((entry) {
+                final i = entry.key;
+                final tab = entry.value;
+                final isActive = i == currentIdx;
+
+                return Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (i == 4) {
+                        HapticFeedback.lightImpact();
+                        _showMoreMenu(context, profile?.role.name ?? 'kitchen_staff');
+                      } else {
+                        HapticFeedback.selectionClick();
+                        context.go(tab.path);
+                      }
+                    },
+                    child: _NavBarItem(
+                      icon: isActive ? tab.activeIcon : tab.icon,
+                      label: tab.label,
+                      isActive: isActive,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -79,71 +110,202 @@ class AppScaffold extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _MoreMenuItem(
-                icon: Icons.calendar_today,
-                label: 'Daily Diary',
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/diary');
-                },
-              ),
-              _MoreMenuItem(
-                icon: Icons.warning_amber,
-                label: 'Incidents',
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/incidents');
-                },
-              ),
-              if (isManager) ...[
-                _MoreMenuItem(
-                  icon: Icons.local_shipping,
-                  label: 'Suppliers',
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.go('/suppliers');
-                  },
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      _MoreItem(
+                        icon: Icons.edit_note_rounded,
+                        label: 'Daily Diary',
+                        color: AppColors.green600,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/diary');
+                        },
+                      ),
+                      _MoreItem(
+                        icon: Icons.warning_rounded,
+                        label: 'Incidents',
+                        color: AppColors.red600,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/incidents');
+                        },
+                      ),
+                      if (isManager) ...[
+                        _MoreItem(
+                          icon: Icons.local_shipping_rounded,
+                          label: 'Suppliers',
+                          color: AppColors.orange600,
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.go('/suppliers');
+                          },
+                        ),
+                        _MoreItem(
+                          icon: Icons.people_rounded,
+                          label: 'Team',
+                          color: AppColors.purple600,
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.go('/team');
+                          },
+                        ),
+                      ],
+                      _MoreItem(
+                        icon: Icons.notifications_rounded,
+                        label: 'Notifications',
+                        color: AppColors.yellow600,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/notifications');
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                _MoreMenuItem(
-                  icon: Icons.people,
-                  label: 'Team',
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.go('/team');
-                  },
-                ),
+                const SizedBox(height: 12),
               ],
-              _MoreMenuItem(
-                icon: Icons.notifications,
-                label: 'Notifications',
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/notifications');
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  NAV BAR ITEM — pill highlight on active
+// ─────────────────────────────────────────────
+
+class _NavBarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+
+  const _NavBarItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon with pill background when active
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.symmetric(
+              horizontal: isActive ? 20 : 12,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: isActive ? AppColors.primary : const Color(0xFFADB5BD),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              color: isActive ? AppColors.primary : const Color(0xFFADB5BD),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  MORE MENU ITEM
+// ─────────────────────────────────────────────
+
+class _MoreItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _MoreItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(icon, size: 24, color: color),
+                const SizedBox(width: 16),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.darkText,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: const Color(0xFFD1D5DB),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -160,25 +322,4 @@ class _TabItem {
     required this.label,
     required this.path,
   });
-}
-
-class _MoreMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _MoreMenuItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.darkBlue),
-      title: Text(label),
-      onTap: onTap,
-    );
-  }
 }
