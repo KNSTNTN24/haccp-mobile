@@ -25,6 +25,7 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final profile = ref.watch(profileProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -40,6 +41,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
       if (isLoggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
+        // Check if user has a profile — if not, send to setup
+        final hasProfile = profile.whenOrNull(data: (p) => p != null) ?? false;
+        if (!hasProfile) return '/setup';
         return '/dashboard';
       }
       return null;

@@ -51,7 +51,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with SingleTickerProv
     if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; _error = null; });
 
-    final success = await ref.read(authNotifierProvider.notifier).setupBusiness(
+    final (success, errorMsg) = await ref.read(authNotifierProvider.notifier).setupBusiness(
       businessName: _businessController.text.trim(),
       fullName: _nameController.text.trim(),
       address: _addressController.text.trim().isNotEmpty ? _addressController.text.trim() : null,
@@ -64,7 +64,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with SingleTickerProv
         ref.invalidate(businessProvider);
         context.go('/dashboard');
       } else {
-        setState(() => _error = 'Failed to create business. Please try again.');
+        setState(() => _error = errorMsg ?? 'Failed to create business. Please try again.');
       }
     }
   }
@@ -81,7 +81,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with SingleTickerProv
 
     setState(() { _isLoading = true; _error = null; });
 
-    final success = await ref.read(authNotifierProvider.notifier).joinWithInvite(
+    final (success, errorMsg) = await ref.read(authNotifierProvider.notifier).joinWithInvite(
       token: _tokenController.text.trim(),
       fullName: _nameController.text.trim(),
     );
@@ -93,7 +93,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with SingleTickerProv
         ref.invalidate(businessProvider);
         context.go('/dashboard');
       } else {
-        setState(() => _error = 'Invalid or expired invite token. Ask your manager for a new one.');
+        setState(() => _error = errorMsg ?? 'Invalid or expired invite token. Ask your manager for a new one.');
       }
     }
   }

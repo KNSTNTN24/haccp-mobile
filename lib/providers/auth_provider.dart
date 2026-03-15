@@ -89,7 +89,7 @@ class AuthNotifier extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.data(null);
   }
 
-  Future<bool> setupBusiness({
+  Future<(bool, String?)> setupBusiness({
     required String businessName,
     required String fullName,
     String? address,
@@ -99,36 +99,22 @@ class AuthNotifier extends Notifier<AsyncValue<void>> {
       final user = SupabaseConfig.auth.currentUser;
       if (user == null) throw Exception('Not authenticated');
 
-      // Create business
-      final businessResponse = await SupabaseConfig.client
-          .from('businesses')
-          .insert({
-            'name': businessName,
-            'address': address,
-          })
-          .select()
-          .single();
-
-      final businessId = businessResponse['id'] as String;
-
-      // Create profile
-      await SupabaseConfig.client.from('profiles').insert({
-        'id': user.id,
-        'email': user.email!,
-        'full_name': fullName,
-        'role': 'owner',
-        'business_id': businessId,
+      // Use RPC function (SECURITY DEFINER) to bypass RLS for setup
+      await SupabaseConfig.client.rpc('setup_business', params: {
+        'business_name': businessName,
+        'owner_name': fullName,
+        'business_address': address,
       });
 
       state = const AsyncValue.data(null);
-      return true;
+      return (true, null);
     } catch (e, st) {
       state = AsyncValue.error(e.toString(), st);
-      return false;
+      return (false, e.toString());
     }
   }
 
-  Future<bool> joinWithInvite({
+  Future<(bool, String?)> joinWithInvite({
     required String token,
     required String fullName,
   }) async {
@@ -137,34 +123,17 @@ class AuthNotifier extends Notifier<AsyncValue<void>> {
       final user = SupabaseConfig.auth.currentUser;
       if (user == null) throw Exception('Not authenticated');
 
-      // Get invite
-      final invite = await SupabaseConfig.client
-          .from('invites')
-          .select()
-          .eq('token', token)
-          .isFilter('used_at', null)
-          .single();
-
-      // Create profile
-      await SupabaseConfig.client.from('profiles').insert({
-        'id': user.id,
-        'email': user.email!,
-        'full_name': fullName,
-        'role': invite['role'],
-        'business_id': invite['business_id'],
+      // Use RPC function (SECURITY DEFINER) to bypass RLS for join
+      await SupabaseConfig.client.rpc('join_with_invite', params: {
+        'invite_token': token,
+        'member_name': fullName,
       });
 
-      // Mark invite as used
-      await SupabaseConfig.client
-          .from('invites')
-          .update({'used_at': DateTime.now().toIso8601String()})
-          .eq('id', invite['id']);
-
       state = const AsyncValue.data(null);
-      return true;
+      return (true, null);
     } catch (e, st) {
       state = AsyncValue.error(e.toString(), st);
-      return false;
+      return (false, e.toString());
     }
   }
 }
