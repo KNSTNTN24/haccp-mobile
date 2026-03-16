@@ -12,6 +12,7 @@ import '../screens/checklists/checklist_history_screen.dart';
 import '../screens/recipes/recipes_screen.dart';
 import '../screens/recipes/recipe_detail_screen.dart';
 import '../screens/recipes/recipe_new_screen.dart';
+import '../screens/recipes/recipe_edit_screen.dart';
 import '../screens/checklists/checklist_manage_screen.dart';
 import '../screens/menu/allergen_matrix_screen.dart';
 import '../screens/diary/diary_screen.dart';
@@ -112,6 +113,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'new',
                 builder: (context, state) => const RecipeNewScreen(),
+              ),
+              GoRoute(
+                path: 'edit/:id',
+                builder: (context, state) => RecipeEditScreen(
+                  recipeId: state.pathParameters['id']!,
+                ),
               ),
               GoRoute(
                 path: ':id',
