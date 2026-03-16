@@ -6,14 +6,15 @@ import 'package:intl/intl.dart';
 import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/checklist.dart';
-import '../../providers/auth_provider.dart';
 
-/// Provider that fetches completion history for a given template.
-/// Returns a record of (completions, itemMap) so the UI can resolve item names.
-final completionHistoryProvider = FutureProvider.family<
-    ({List<ChecklistCompletion> completions, Map<String, ChecklistTemplateItem> itemMap}),
-    String>((ref, templateId) async {
-  // Fetch completions with joined profile name and responses
+class CompletionHistoryData {
+  final List<ChecklistCompletion> completions;
+  final Map<String, ChecklistTemplateItem> itemMap;
+  CompletionHistoryData({required this.completions, required this.itemMap});
+}
+
+final completionHistoryProvider =
+    FutureProvider.family<CompletionHistoryData, String>((ref, templateId) async {
   final response = await SupabaseConfig.client
       .from('checklist_completions')
       .select('*, profiles:completed_by(full_name), checklist_responses(*)')
@@ -24,7 +25,6 @@ final completionHistoryProvider = FutureProvider.family<
       .map((e) => ChecklistCompletion.fromJson(e as Map<String, dynamic>))
       .toList();
 
-  // Fetch template items to map item_id -> item name
   final itemsResponse = await SupabaseConfig.client
       .from('checklist_template_items')
       .select()
@@ -37,7 +37,7 @@ final completionHistoryProvider = FutureProvider.family<
 
   final itemMap = {for (final item in items) item.id: item};
 
-  return (completions: completions, itemMap: itemMap);
+  return CompletionHistoryData(completions: completions, itemMap: itemMap);
 });
 
 class ChecklistHistoryScreen extends ConsumerStatefulWidget {
@@ -56,7 +56,8 @@ class _ChecklistHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final historyAsync = ref.watch(completionHistoryProvider(widget.templateId));
+    final historyAsync =
+        ref.watch(completionHistoryProvider(widget.templateId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -65,7 +66,7 @@ class _ChecklistHistoryScreenState
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
-          onPressed: () => context.go('/checklists'),
+          onPressed: () => context.go('/checklists/${widget.templateId}'),
         ),
         title: Text(
           'Completion History',
@@ -165,7 +166,6 @@ class _ChecklistHistoryScreenState
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // Header - tap to expand/collapse
           InkWell(
             onTap: () {
               setState(() {
@@ -223,8 +223,6 @@ class _ChecklistHistoryScreenState
               ),
             ),
           ),
-
-          // Expanded responses
           if (isExpanded) ...[
             Divider(height: 1, color: AppColors.divider),
             _buildResponseList(completion.responses ?? [], itemMap),
@@ -248,7 +246,6 @@ class _ChecklistHistoryScreenState
       );
     }
 
-    // Sort responses by item sort_order when possible
     final sorted = List<ChecklistResponse>.from(responses);
     sorted.sort((a, b) {
       final aOrder = itemMap[a.itemId]?.sortOrder ?? 0;
