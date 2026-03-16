@@ -11,21 +11,21 @@ enum DocumentCategory {
   String get label {
     switch (this) {
       case certificate:
-        return 'Сертификат';
+        return 'Certificate';
       case license:
-        return 'Лицензия';
+        return 'License';
       case policy:
-        return 'Политика';
+        return 'Policy';
       case instruction:
-        return 'Инструкция';
+        return 'Instruction';
       case contract:
-        return 'Договор';
+        return 'Contract';
       case inspection:
-        return 'Проверка';
+        return 'Inspection';
       case training:
-        return 'Обучение';
+        return 'Training';
       case other:
-        return 'Прочее';
+        return 'Other';
     }
   }
 
@@ -60,13 +60,13 @@ enum AccessLevel {
   String get label {
     switch (this) {
       case all:
-        return 'Все сотрудники';
+        return 'All staff';
       case managersOnly:
-        return 'Менеджеры и владелец';
+        return 'Managers & Owner';
       case ownerOnly:
-        return 'Только владелец';
+        return 'Owner only';
       case custom:
-        return 'Выбранные сотрудники';
+        return 'Selected members';
     }
   }
 
