@@ -27,6 +27,7 @@ class AppScaffold extends ConsumerWidget {
         location.startsWith('/incidents') ||
         location.startsWith('/suppliers') ||
         location.startsWith('/team') ||
+        location.startsWith('/documents') ||
         location.startsWith('/notifications')) return 4;
     return 0;
   }
@@ -173,6 +174,15 @@ class AppScaffold extends ConsumerWidget {
                           },
                         ),
                       ],
+                      _MoreItem(
+                        icon: Icons.folder_rounded,
+                        label: 'Documents',
+                        color: AppColors.blue600,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/documents');
+                        },
+                      ),
                       _MoreItem(
                         icon: Icons.notifications_rounded,
                         label: 'Notifications',

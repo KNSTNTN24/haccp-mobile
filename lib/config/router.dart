@@ -18,6 +18,9 @@ import '../screens/incidents/incidents_screen.dart';
 import '../screens/suppliers/suppliers_screen.dart';
 import '../screens/team/team_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
+import '../screens/documents/documents_screen.dart';
+import '../screens/documents/document_upload_screen.dart';
+import '../screens/documents/document_detail_screen.dart';
 import '../widgets/app_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -138,6 +141,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: TeamScreen(),
             ),
+          ),
+          GoRoute(
+            path: '/documents',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DocumentsScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'upload',
+                builder: (context, state) => const DocumentUploadScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => DocumentDetailScreen(
+                  documentId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/notifications',
