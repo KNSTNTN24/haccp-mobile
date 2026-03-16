@@ -499,6 +499,7 @@ ShellRoute (AppScaffold — bottom navigation):
 - **Storage bucket** `documents` — private, max 10 MB, PDF/JPG/PNG/DOCX/XLSX
 
 ### Flutter
+- **ВАЖНО: Язык интерфейса — ТОЛЬКО АНГЛИЙСКИЙ!** Все labels, buttons, messages, placeholders — на английском. Без русского текста в UI!
 - **Riverpod 3.x** — используем `Notifier`, НЕ `StateNotifier`; `.value` НЕ `.valueOrNull`
 - **GoRouter** — используем `context.go()` для навигации
 - **AnimatedBuilder** в setup_screen — работает с TabController
