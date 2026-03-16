@@ -1,0 +1,1 @@
+ /Users/knstntn/HACCP/haccp-mobile/.dart_tool/flutter_build/a43d0e03dab71a9ebfe391559aec6d77/dart_build_result.json:  /Users/knstntn/HACCP/haccp-mobile/.dart_tool/package_config.json /Users/knstntn/HACCP/haccp-mobile/pubspec.yaml /opt/homebrew/share/flutter/bin/cache/dart-sdk/version
