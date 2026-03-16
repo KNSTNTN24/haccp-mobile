@@ -8,6 +8,7 @@ import '../screens/auth/setup_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/checklists/checklists_screen.dart';
 import '../screens/checklists/checklist_detail_screen.dart';
+import '../screens/checklists/checklist_history_screen.dart';
 import '../screens/recipes/recipes_screen.dart';
 import '../screens/recipes/recipe_detail_screen.dart';
 import '../screens/recipes/recipe_new_screen.dart';
@@ -91,6 +92,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => ChecklistDetailScreen(
                   templateId: state.pathParameters['id']!,
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'history',
+                    builder: (context, state) => ChecklistHistoryScreen(
+                      templateId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

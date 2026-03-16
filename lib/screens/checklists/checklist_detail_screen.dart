@@ -6,6 +6,7 @@ import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/checklist.dart';
 import '../../providers/auth_provider.dart';
+import 'checklists_screen.dart';
 
 class ChecklistDetailScreen extends ConsumerStatefulWidget {
   final String templateId;
@@ -98,6 +99,83 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
     }
   }
 
+  Future<void> _toggleActive() async {
+    if (_template == null) return;
+    final newActive = !_template!.active;
+    try {
+      await SupabaseConfig.client
+          .from('checklist_templates')
+          .update({'active': newActive})
+          .eq('id', widget.templateId);
+      ref.invalidate(checklistsProvider);
+      await _loadTemplate();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newActive ? 'Checklist activated' : 'Checklist deactivated',
+              style: GoogleFonts.inter(),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e', style: GoogleFonts.inter())),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteTemplate() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'Delete Checklist',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.darkText),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${_template!.name}"? This action cannot be undone.',
+          style: GoogleFonts.inter(color: AppColors.midText),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.midText)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Delete', style: GoogleFonts.inter(color: AppColors.red600, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await SupabaseConfig.client
+          .from('checklist_templates')
+          .delete()
+          .eq('id', widget.templateId);
+      ref.invalidate(checklistsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Checklist deleted', style: GoogleFonts.inter())),
+        );
+        context.go('/checklists');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting checklist: $e', style: GoogleFonts.inter())),
+        );
+      }
+    }
+  }
+
   bool _isFlagged(String itemId, String value) {
     final item = _template?.items?.firstWhere((i) => i.id == itemId);
     if (item == null) return false;
@@ -131,6 +209,61 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/checklists'),
         ),
+        actions: [
+          if (ref.watch(profileProvider).value?.isManager == true)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 22),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) {
+                if (value == 'history') {
+                  context.go('/checklists/${widget.templateId}/history');
+                } else if (value == 'toggle_active') {
+                  _toggleActive();
+                } else if (value == 'delete') {
+                  _deleteTemplate();
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'history',
+                  child: Row(
+                    children: [
+                      Icon(Icons.history, size: 18, color: AppColors.midText),
+                      const SizedBox(width: 10),
+                      Text('Completion History', style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText)),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'toggle_active',
+                  child: Row(
+                    children: [
+                      Icon(
+                        _template!.active ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 18,
+                        color: AppColors.midText,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _template!.active ? 'Deactivate' : 'Activate',
+                        style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete_outline, size: 18, color: AppColors.red600),
+                      const SizedBox(width: 10),
+                      Text('Delete', style: GoogleFonts.inter(fontSize: 14, color: AppColors.red600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: Column(
         children: [

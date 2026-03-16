@@ -379,13 +379,63 @@ class _ClipboardPainter extends CustomPainter {
 //  CHECKLIST CARD
 // ─────────────────────────────────────────────
 
-class _ChecklistCard extends StatelessWidget {
+class _ChecklistCard extends ConsumerWidget {
   final ChecklistTemplate checklist;
   const _ChecklistCard({required this.checklist});
 
+  Future<void> _deleteChecklist(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'Delete Checklist',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.darkText),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${checklist.name}"? This action cannot be undone.',
+          style: GoogleFonts.inter(color: AppColors.midText),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.midText)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Delete', style: GoogleFonts.inter(color: AppColors.red600, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await SupabaseConfig.client
+          .from('checklist_templates')
+          .delete()
+          .eq('id', checklist.id);
+      ref.invalidate(checklistsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Checklist deleted', style: GoogleFonts.inter())),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting checklist: $e', style: GoogleFonts.inter())),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final itemCount = checklist.items?.length ?? 0;
+    final profile = ref.watch(profileProvider).value;
+    final isManager =
+        profile?.role == UserRole.owner || profile?.role == UserRole.manager;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -470,8 +520,46 @@ class _ChecklistCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded,
-                  size: 22, color: AppColors.lightText),
+              if (isManager)
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, size: 20, color: AppColors.lightText),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Coming soon', style: GoogleFonts.inter())),
+                      );
+                    } else if (value == 'delete') {
+                      _deleteChecklist(context, ref);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.edit_outlined, size: 18, color: AppColors.midText),
+                          const SizedBox(width: 10),
+                          Text('Edit', style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_outline, size: 18, color: AppColors.red600),
+                          const SizedBox(width: 10),
+                          Text('Delete', style: GoogleFonts.inter(fontSize: 14, color: AppColors.red600)),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Icon(Icons.chevron_right_rounded,
+                    size: 22, color: AppColors.lightText),
             ],
           ),
         ),

@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/recipe.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/allergen_badge.dart';
+import 'recipes_screen.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
@@ -38,6 +40,68 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     });
   }
 
+  Future<void> _toggleActive() async {
+    final recipe = _recipe!;
+    final newActive = !recipe.active;
+
+    await SupabaseConfig.client
+        .from('recipes')
+        .update({'active': newActive})
+        .eq('id', recipe.id);
+
+    ref.invalidate(recipesProvider);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newActive ? 'Recipe activated' : 'Recipe deactivated'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      await _loadRecipe();
+    }
+  }
+
+  Future<void> _deleteRecipe() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Recipe', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        content: Text(
+          'Are you sure you want to delete "${_recipe!.name}"? This action cannot be undone.',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancel', style: GoogleFonts.inter()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: Text('Delete', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await SupabaseConfig.client.from('recipes').delete().eq('id', _recipe!.id);
+
+    ref.invalidate(recipesProvider);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recipe deleted'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      context.go('/recipes');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -45,6 +109,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     }
 
     final recipe = _recipe!;
+    final profile = ref.watch(profileProvider).value;
+    final canManage = profile?.canManageRecipes ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -53,12 +119,83 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/recipes'),
         ),
+        actions: [
+          if (canManage)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                switch (value) {
+                  case 'edit':
+                    context.go('/recipes/edit/${recipe.id}');
+                    break;
+                  case 'toggle_active':
+                    _toggleActive();
+                    break;
+                  case 'delete':
+                    _deleteRecipe();
+                    break;
+                }
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Edit'),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'toggle_active',
+                  child: ListTile(
+                    leading: Icon(recipe.active ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    title: Text(recipe.active ? 'Deactivate' : 'Activate'),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete_outline, color: AppColors.error),
+                    title: Text('Delete', style: TextStyle(color: AppColors.error)),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Inactive banner
+            if (!recipe.active)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_off, size: 18, color: AppColors.lightText),
+                    const SizedBox(width: 8),
+                    Text(
+                      'This recipe is inactive',
+                      style: GoogleFonts.inter(fontSize: 13, color: AppColors.lightText, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+
             // Category & cooking info
             Card(
               child: Padding(
@@ -127,7 +264,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Allergens', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600)),
+                      Text('Allergens', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
@@ -149,7 +286,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Ingredients', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600)),
+                      Text('Ingredients', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       ...recipe.ingredients!.map((ri) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -183,7 +320,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Instructions', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600)),
+                      Text('Instructions', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Text(recipe.instructions, style: const TextStyle(fontSize: 14, height: 1.5)),
                     ],
