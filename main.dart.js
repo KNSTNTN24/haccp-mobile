@@ -101391,14 +101391,14 @@ ds(){var s=this
 return A.a6(["date",s.b,"business_id",s.c,"signed_by",s.d,"notes",s.e,"opening_done",s.f,"closing_done",s.r],t.N,t.z)}}
 A.eQ.prototype={
 K(){return"DocumentCategory."+this.b},
-gkQ(){switch(this.a){case 0:return"\u0421\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442"
-case 1:return"\u041b\u0438\u0446\u0435\u043d\u0437\u0438\u044f"
-case 2:return"\u041f\u043e\u043b\u0438\u0442\u0438\u043a\u0430"
-case 3:return"\u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f"
-case 4:return"\u0414\u043e\u0433\u043e\u0432\u043e\u0440"
-case 5:return"\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430"
-case 6:return"\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435"
-case 7:return"\u041f\u0440\u043e\u0447\u0435\u0435"}},
+gkQ(){switch(this.a){case 0:return"Certificate"
+case 1:return"License"
+case 2:return"Policy"
+case 3:return"Instruction"
+case 4:return"Contract"
+case 5:return"Inspection"
+case 6:return"Training"
+case 7:return"Other"}},
 gFC(){switch(this.a){case 0:return"\ud83c\udfc6"
 case 1:return"\ud83d\udccb"
 case 2:return"\ud83d\udcdc"
@@ -101409,10 +101409,10 @@ case 6:return"\ud83c\udf93"
 case 7:return"\ud83d\udcc4"}}}
 A.hO.prototype={
 K(){return"AccessLevel."+this.b},
-gkQ(){switch(this.a){case 0:return"\u0412\u0441\u0435 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0438"
-case 1:return"\u041c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u044b \u0438 \u0432\u043b\u0430\u0434\u0435\u043b\u0435\u0446"
-case 2:return"\u0422\u043e\u043b\u044c\u043a\u043e \u0432\u043b\u0430\u0434\u0435\u043b\u0435\u0446"
-case 3:return"\u0412\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0435 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0438"}},
+gkQ(){switch(this.a){case 0:return"All staff"
+case 1:return"Managers & Owner"
+case 2:return"Owner only"
+case 3:return"Selected members"}},
 a7E(){switch(this.a){case 0:return"all"
 case 1:return"managers_only"
 case 2:return"owner_only"
