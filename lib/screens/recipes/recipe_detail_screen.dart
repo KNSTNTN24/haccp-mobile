@@ -255,8 +255,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ),
             ),
 
-            // Allergens
-            if (recipe.allAllergens.isNotEmpty) ...[
+            // Dietary & Allergens
+            if (recipe.allAllergens.isNotEmpty || recipe.dietaryLabels.isNotEmpty) ...[
               const SizedBox(height: 16),
               Card(
                 child: Padding(
@@ -264,13 +264,58 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Allergens', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: recipe.allAllergens.map((a) => AllergenBadge(allergen: a)).toList(),
-                      ),
+                      Text('Dietary & Allergens', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
+                      if (recipe.dietaryLabels.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: recipe.dietaryLabels.map((label) {
+                            Color bg;
+                            Color fg;
+                            switch (label) {
+                              case 'Vegan':
+                                bg = const Color(0xFFDCFCE7);
+                                fg = const Color(0xFF16A34A);
+                                break;
+                              case 'Vegetarian':
+                                bg = const Color(0xFFD1FAE5);
+                                fg = const Color(0xFF059669);
+                                break;
+                              case 'GF':
+                                bg = const Color(0xFFDBEAFE);
+                                fg = const Color(0xFF2563EB);
+                                break;
+                              case 'DF':
+                                bg = const Color(0xFFFEF3C7);
+                                fg = const Color(0xFFD97706);
+                                break;
+                              default:
+                                bg = Colors.grey.shade100;
+                                fg = Colors.grey.shade700;
+                            }
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: bg,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                label,
+                                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      if (recipe.allAllergens.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: recipe.allAllergens.map((a) => AllergenBadge(allergen: a)).toList(),
+                        ),
+                      ],
                     ],
                   ),
                 ),

@@ -142,6 +142,33 @@ class Recipe {
     }
     return allergens.toList()..sort();
   }
+
+  /// Dietary classification based on allergens from ingredients.
+  /// Note: meat (beef, pork, chicken) is not among the 14 allergens,
+  /// so isVegetarian is approximate — only fish/crustaceans/molluscs are excluded.
+  bool get isVegetarian {
+    final a = allAllergens;
+    return !a.contains('fish') && !a.contains('crustaceans') && !a.contains('molluscs');
+  }
+
+  bool get isVegan {
+    return isVegetarian && !allAllergens.contains('milk') && !allAllergens.contains('eggs');
+  }
+
+  bool get isGlutenFree => !allAllergens.contains('gluten');
+  bool get isDairyFree => !allAllergens.contains('milk');
+
+  List<String> get dietaryLabels {
+    final labels = <String>[];
+    if (isVegan) {
+      labels.add('Vegan');
+    } else if (isVegetarian) {
+      labels.add('Vegetarian');
+    }
+    if (isGlutenFree) labels.add('GF');
+    if (isDairyFree) labels.add('DF');
+    return labels;
+  }
 }
 
 class Ingredient {

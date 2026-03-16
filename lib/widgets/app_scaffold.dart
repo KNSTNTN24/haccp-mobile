@@ -28,7 +28,8 @@ class AppScaffold extends ConsumerWidget {
         location.startsWith('/suppliers') ||
         location.startsWith('/team') ||
         location.startsWith('/documents') ||
-        location.startsWith('/notifications')) return 4;
+        location.startsWith('/notifications') ||
+        location.startsWith('/ai-import')) return 4;
     return 0;
   }
 
@@ -181,6 +182,15 @@ class AppScaffold extends ConsumerWidget {
                         onTap: () {
                           Navigator.pop(context);
                           context.go('/documents');
+                        },
+                      ),
+                      _MoreItem(
+                        icon: Icons.auto_awesome_rounded,
+                        label: 'AI Recipe Import',
+                        color: AppColors.primary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/ai-import');
                         },
                       ),
                       _MoreItem(

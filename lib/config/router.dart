@@ -23,6 +23,7 @@ import '../screens/notifications/notifications_screen.dart';
 import '../screens/documents/documents_screen.dart';
 import '../screens/documents/document_upload_screen.dart';
 import '../screens/documents/document_detail_screen.dart';
+import '../screens/ai_import/ai_import_screen.dart';
 import '../widgets/app_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -180,6 +181,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/notifications',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: NotificationsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/ai-import',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: AiImportScreen(),
             ),
           ),
         ],

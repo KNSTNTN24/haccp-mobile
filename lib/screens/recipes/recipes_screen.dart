@@ -153,19 +153,66 @@ class RecipesScreen extends ConsumerWidget {
                 ),
             ],
           ),
-          subtitle: recipe.allAllergens.isNotEmpty
+          subtitle: (recipe.allAllergens.isNotEmpty || recipe.dietaryLabels.isNotEmpty)
               ? Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: recipe.allAllergens.map((a) => AllergenBadge(allergen: a)).toList(),
+                    children: [
+                      ...recipe.dietaryLabels.map((label) => _DietaryChip(label: label)),
+                      ...recipe.allAllergens.map((a) => AllergenBadge(allergen: a)),
+                    ],
                   ),
                 )
               : null,
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.go('/recipes/${recipe.id}'),
         ),
+      ),
+    );
+  }
+}
+
+class _DietaryChip extends StatelessWidget {
+  final String label;
+  const _DietaryChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    Color fg;
+    switch (label) {
+      case 'Vegan':
+        bg = const Color(0xFFDCFCE7);
+        fg = const Color(0xFF16A34A);
+        break;
+      case 'Vegetarian':
+        bg = const Color(0xFFD1FAE5);
+        fg = const Color(0xFF059669);
+        break;
+      case 'GF':
+        bg = const Color(0xFFDBEAFE);
+        fg = const Color(0xFF2563EB);
+        break;
+      case 'DF':
+        bg = const Color(0xFFFEF3C7);
+        fg = const Color(0xFFD97706);
+        break;
+      default:
+        bg = Colors.grey.shade100;
+        fg = Colors.grey.shade700;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: fg),
       ),
     );
   }
