@@ -17,7 +17,7 @@ final completionHistoryProvider =
     FutureProvider.family<CompletionHistoryData, String>((ref, templateId) async {
   final response = await SupabaseConfig.client
       .from('checklist_completions')
-      .select('*, profiles:completed_by(full_name), checklist_responses(*)')
+      .select('*, profiles:completed_by(full_name), signer:profiles!signed_off_by(full_name), checklist_responses(*)')
       .eq('template_id', templateId)
       .order('completed_at', ascending: false);
 
@@ -210,6 +210,53 @@ class _ChecklistHistoryScreenState
                             color: AppColors.midText,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        if (completion.isSignedOff)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.green50,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified, size: 12, color: AppColors.green600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Signed off by ${completion.signedOffByName ?? 'Unknown'}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.green600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (completion.signedOffBy == null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.orange50,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.pending_actions, size: 12, color: AppColors.orange600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Awaiting sign-off',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.orange600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),

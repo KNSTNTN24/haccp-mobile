@@ -18,13 +18,18 @@ Flutter-приложение для управления пищевой безо
 | Фреймворк | Flutter (Dart 3.11+) |
 | State Management | Riverpod 3.x (Notifier, NOT StateNotifier) |
 | Навигация | GoRouter 17.x |
-| Бэкенд | Supabase (PostgreSQL + Auth + RLS) |
-| UI | Material Design 3, Google Fonts (Inter, Outfit) |
+| Бэкенд | Supabase (PostgreSQL + Auth + RLS + Storage) |
+| UI | Material Design 3, GoogleFonts.inter |
+| PDF генерация | pdf ^3.11.3 |
+| CSV генерация | csv ^6.0.0 |
+| File sharing (mobile) | share_plus ^10.1.4, path_provider ^2.1.5 |
 | Деплой | GitHub Pages (web), iOS Simulator |
 
 ## Дизайн (обновлён Марией)
 
 - Зелёно-белая тема с Material 3
+- primary = `#0B8457` (emerald), primaryLight = `#10B981`
+- Шрифт: Inter (GoogleFonts.inter)
 - Анимированные пустые состояния
 - Обновлённый навбар с иконками
 
@@ -41,15 +46,15 @@ lib/
 │   ├── router.dart                    # GoRouter с redirect-логикой
 │   └── theme.dart                     # AppColors + AppTheme (Material 3)
 ├── models/
-│   ├── profile.dart                   # UserRole enum + Profile
+│   ├── profile.dart                   # UserRole enum + Profile (isManager, canManageRecipes)
 │   ├── business.dart                  # Business
 │   ├── checklist.dart                 # ChecklistTemplate, Item, Completion, Response
 │   ├── recipe.dart                    # Recipe, Ingredient, RecipeIngredient
 │   ├── menu_item.dart                 # MenuItem
-│   ├── incident.dart                  # Incident
+│   ├── incident.dart                  # Incident (status, resolvedBy, resolvedAt, resolvedNotes)
 │   ├── supplier.dart                  # Supplier
 │   ├── notification.dart              # AppNotification
-│   ├── diary_entry.dart               # DiaryEntry
+│   ├── diary_entry.dart               # DiaryEntry (legacy, не используется)
 │   └── document.dart                  # Document, DocumentAccess, AccessLevel
 ├── providers/
 │   ├── auth_provider.dart             # Auth + Profile + Business providers
@@ -63,21 +68,23 @@ lib/
 │   ├── dashboard/
 │   │   └── dashboard_screen.dart      # Статистика + quick actions
 │   ├── checklists/
-│   │   ├── checklists_screen.dart     # Список шаблонов
-│   │   ├── checklist_detail_screen.dart # Заполнение чеклиста
-│   │   └── checklist_manage_screen.dart # Создание шаблона
+│   │   ├── checklists_screen.dart     # Список шаблонов + edit/delete (manager)
+│   │   ├── checklist_detail_screen.dart # Заполнение + activate/deactivate/delete/history
+│   │   ├── checklist_manage_screen.dart # Создание шаблона
+│   │   └── checklist_history_screen.dart # История заполнений (expandable cards)
 │   ├── recipes/
-│   │   ├── recipes_screen.dart        # Список рецептов по категориям
-│   │   ├── recipe_detail_screen.dart  # Детальный просмотр
-│   │   └── recipe_new_screen.dart     # Создание рецепта
+│   │   ├── recipes_screen.dart        # Список (active + inactive section)
+│   │   ├── recipe_detail_screen.dart  # Просмотр + edit/deactivate/delete
+│   │   ├── recipe_new_screen.dart     # Создание рецепта
+│   │   └── recipe_edit_screen.dart    # Редактирование рецепта
 │   ├── menu/
 │   │   └── allergen_matrix_screen.dart # Матрица аллергенов
 │   ├── diary/
-│   │   └── diary_screen.dart          # Ежедневный дневник SFBB
+│   │   └── diary_screen.dart          # Daily Diary — агрегатор событий за день + экспорт
 │   ├── incidents/
-│   │   └── incidents_screen.dart      # Инциденты и жалобы
+│   │   └── incidents_screen.dart      # Инциденты: filter tabs, status, resolve, edit/delete
 │   ├── suppliers/
-│   │   └── suppliers_screen.dart      # Поставщики
+│   │   └── suppliers_screen.dart      # Поставщики: add/edit/delete (manager)
 │   ├── team/
 │   │   └── team_screen.dart           # Команда + приглашения
 │   ├── documents/
@@ -88,6 +95,11 @@ lib/
 │   │   └── notifications_screen.dart  # Уведомления
 │   └── ai_import/
 │       └── ai_import_screen.dart      # Заглушка "Coming Soon"
+├── utils/
+│   ├── diary_export.dart              # PDF/CSV генерация + кроссплатформенный download/share
+│   ├── file_saver_stub.dart           # Stub для conditional import
+│   ├── file_saver_web.dart            # Web: dart:html Blob + AnchorElement download
+│   └── file_saver_mobile.dart         # Mobile: path_provider + share_plus
 └── widgets/
     ├── allergen_badge.dart            # Бейдж аллергена с эмодзи
     └── app_scaffold.dart              # Bottom nav + shell
@@ -107,8 +119,10 @@ ShellRoute (AppScaffold — bottom navigation):
   /checklists             → ChecklistsScreen
     /checklists/new       → ChecklistManageScreen (manager/owner)
     /checklists/:id       → ChecklistDetailScreen
+    /checklists/:id/history → ChecklistHistoryScreen
   /recipes                → RecipesScreen
     /recipes/new          → RecipeNewScreen
+    /recipes/edit/:id     → RecipeEditScreen
     /recipes/:id          → RecipeDetailScreen
   /menu                   → AllergenMatrixScreen
   /diary                  → DiaryScreen
@@ -139,9 +153,12 @@ ShellRoute (AppScaffold — bottom navigation):
 | `authNotifierProvider` | `NotifierProvider<AuthNotifier>` | signIn/signUp/signOut/setupBusiness/joinWithInvite |
 | `dashboardStatsProvider` | `FutureProvider<DashboardStats>` | Агрегация статистики для дашборда |
 | `checklistsProvider` | `FutureProvider` (в экране) | Шаблоны чеклистов с items |
+| `checklistCompletionsProvider` | `FutureProvider` (в checklists_screen) | Все последние completions для статусов |
+| `completionHistoryProvider` | `FutureProvider.family<CompletionHistoryData, String>` | История заполнений чеклиста |
 | `recipesProvider` | `FutureProvider` (в экране) | Рецепты с ингредиентами |
-| `diaryProvider` | `FutureProvider.family<..., String>` | Дневник по дате |
-| `incidentsProvider` | `FutureProvider` (в экране) | Инциденты |
+| `diaryChecklistsProvider` | `FutureProvider.family<List<ChecklistCompletion>, String>` | Чеклисты завершённые за дату |
+| `diaryIncidentsProvider` | `FutureProvider.family<List<Incident>, String>` | Инциденты за дату |
+| `incidentsProvider` | `FutureProvider` (в экране) | Инциденты с joined profiles |
 | `suppliersProvider` | `FutureProvider` (в экране) | Поставщики |
 | `teamProvider` | `FutureProvider` (в экране) | Члены команды |
 | `notificationsProvider` | `FutureProvider` (в экране) | Уведомления (50 макс) |
@@ -197,6 +214,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | sfbb_section | TEXT | Секция SFBB |
 | is_default | BOOLEAN | Дефолтный ли |
 | active | BOOLEAN | Активен ли |
+| supervisor_role | TEXT | Роль супервайзера для sign-off (NULL = не требуется) |
 
 #### 5. `checklist_template_items`
 | Колонка | Тип | Описание |
@@ -218,6 +236,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | completed_by | UUID NOT NULL | FK → profiles |
 | completed_at | TIMESTAMPTZ | NOW() |
 | signed_off_by | UUID | FK → profiles |
+| signed_off_at | TIMESTAMPTZ | Когда подписано |
 | notes | TEXT | |
 | business_id | UUID NOT NULL | FK |
 
@@ -260,7 +279,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | source_video_url | TEXT | URL видео (AI import) |
 | business_id | UUID NOT NULL | FK |
 | created_by | UUID NOT NULL | FK → profiles |
-| active | BOOLEAN | |
+| active | BOOLEAN | Деактивированные скрыты из меню |
 
 #### 10. `recipe_ingredients`
 | Колонка | Тип | Описание |
@@ -323,10 +342,15 @@ ShellRoute (AppScaffold — bottom navigation):
 | type | TEXT NOT NULL | complaint/incident |
 | description | TEXT NOT NULL | Описание |
 | action_taken | TEXT | Предпринятые действия |
-| follow_up | TEXT | Как предотвратить |
+| follow_up | TEXT | Что сделать для предотвращения |
 | reported_by | UUID NOT NULL | FK → profiles |
 | date | DATE NOT NULL | |
 | business_id | UUID NOT NULL | FK |
+| status | TEXT DEFAULT 'open' | open/resolved |
+| resolved_by | UUID | FK → profiles — кто закрыл |
+| resolved_at | TIMESTAMPTZ | Когда закрыт |
+| resolved_notes | TEXT | Как был решён |
+| updated_at | TIMESTAMPTZ | Последнее обновление |
 
 #### 16. `documents`
 | Колонка | Тип | Описание |
@@ -366,7 +390,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | notes | TEXT | |
 | business_id | UUID NOT NULL | FK |
 
-#### 17. `four_weekly_reviews` (не используется в мобильном)
+#### 19. `four_weekly_reviews` (не используется в мобильном)
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID PK | |
@@ -377,7 +401,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | reviewed_by | UUID | FK → profiles |
 | reviewed_at | TIMESTAMPTZ | |
 
-#### 18. `notification_rules` (не используется в мобильном)
+#### 20. `notification_rules` (не используется в мобильном)
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID PK | |
@@ -396,14 +420,15 @@ ShellRoute (AppScaffold — bottom navigation):
 | profiles | Свой бизнес + свой профиль | Свой id (auth.uid) | Свой профиль | — |
 | invites | Manager/Owner своего бизнеса | Manager/Owner | Manager/Owner | Manager/Owner |
 | checklist_templates | Свой бизнес | Manager/Owner | Manager/Owner | Manager/Owner |
-| checklist_completions | Свой бизнес | Свой (completed_by) | — | — |
+| checklist_completions | Свой бизнес | Свой (completed_by) | Sign-off (supervisor) | — |
+| checklist_responses | Через completions (subquery) | Свой бизнес | — | — |
 | recipes | Свой бизнес | Chef/Manager/Owner | Chef/Manager/Owner | Chef/Manager/Owner |
 | ingredients | Свой бизнес + глобальные | Chef/Manager/Owner | Chef/Manager/Owner | Chef/Manager/Owner |
 | suppliers | Свой бизнес | Manager/Owner | Manager/Owner | Manager/Owner |
-| incidents | Свой бизнес | Свой (reported_by) | — | — |
+| incidents | Свой бизнес | Свой (reported_by) | Manager/Owner (для resolve) | Manager/Owner |
 | diary_entries | Свой бизнес | Свой бизнес | Свой бизнес | Свой бизнес |
 | documents | По access_level + role | Manager/Owner | Owner + uploaded_by | Owner |
-| document_access | Свой бизнес | Manager/Owner | — | Owner |
+| document_access | Открытый SELECT (данные scoped) | Manager/Owner | — | Owner |
 | notifications | Свои (user_id) | — | Свои | — |
 
 ### RPC-функции (SECURITY DEFINER)
@@ -427,45 +452,42 @@ ShellRoute (AppScaffold — bottom navigation):
 |----------|-------|---------|------|---------------|----------------|
 | Создать чеклист | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Заполнить чеклист | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Создать рецепт | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Просмотр истории чеклистов | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Создать/edit рецепт | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Деактивировать/удалить рецепт | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Управлять поставщиками | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Пригласить в команду | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Создать инцидент | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Resolve/reopen инцидент | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Edit/delete инцидент | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Вести дневник | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Загружать документы | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
 ## Статус функций
 
-### ✅ Реализовано
+### ✅ Полностью реализовано
 
 1. **Auth** — Login, Register, Setup (Create Business / Join Team)
-2. **Dashboard** — Статистика, прогресс-кольцо, quick actions
-3. **Чеклисты** — Список, заполнение (tick/temp/text/yes_no), создание шаблона
-4. **Рецепты** — Список по категориям, детальный просмотр, создание с ингредиентами
-5. **Аллергены** — Матрица 14 аллергенов × рецепты, бейджи с эмодзи
-6. **Дневник** — Открытие/закрытие, подпись, заметки, навигация по датам
-7. **Инциденты** — Список, создание (тип + описание + действия)
-8. **Поставщики** — Список, добавление (контакт, телефон, товары, дни доставки)
-9. **Команда** — Список участников, приглашение по токену
-10. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное
-11. **Документы** — Загрузка файлов (PDF, JPG, DOCX, XLSX), категории, поиск, управление доступом (all/managers/owner/custom), срок действия, Supabase Storage
+2. **Dashboard** — Статистика (overview grid), quick actions
+3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям (owner=все, остальные=assigned+supervised), создание с supervisor role, заполнение (tick/temp/text/yes_no), sign-off workflow, activate/deactivate, delete
+4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items
+5. **Рецепты** — Список (active/inactive sections), создание, edit, deactivate, delete
+6. **Аллергены** — Матрица 14 аллергенов × рецепты, бейджи с эмодзи
+7. **Дневник (Daily Diary)** — Агрегатор событий за день: чеклисты + инциденты с карточками, навигация по датам, экспорт отчёта (PDF/CSV) за период с выбором включаемых секций
+8. **Инциденты** — Список с фильтрами (All/Open/Resolved), создание, edit, delete, resolve/reopen, follow-up, timestamps, resolution info
+9. **Поставщики** — Список, add/edit/delete (manager only)
+10. **Команда** — Список участников, приглашение по токену
+11. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное
+12. **Документы** — Загрузка файлов (PDF, JPG, DOCX, XLSX), категории, поиск, управление доступом (all/managers/owner/custom), срок действия
 
 ### 🟡 Частично
 
-- **Инциденты** — поле `follow_up` есть в БД, но не в UI
 - **Меню** — матрица аллергенов есть, но нет управления menu_items
 - **Уведомления** — отображение есть, но нет автоматической генерации
 
 ### ❌ Не реализовано
-
-#### Высокий приоритет
-- [ ] **Edit/Delete рецептов** — нет кнопок редактирования/удаления
-- [ ] **Edit/Delete чеклистов** — нет редактирования шаблонов
-- [ ] **Edit/Delete поставщиков** — нет редактирования/удаления
-- [ ] **История чеклистов** — нет просмотра прошлых заполнений
-- [ ] **Инцидент follow-up** — поле `follow_up` не показано в UI
-- [ ] **Статус инцидента** — нет open/resolved трекинга
 
 #### Средний приоритет
 - [ ] **Menu Builder** — активация/деактивация блюд в меню, категории
@@ -473,8 +495,11 @@ ShellRoute (AppScaffold — bottom navigation):
 - [ ] **Настройки бизнеса** — редактирование адреса, названия
 - [ ] **Staff Training Records** — обучение сотрудников (таблица есть в БД)
 - [ ] **4-Weekly Review** — ревью за 4 недели (таблица есть в БД)
-- [ ] **PDF экспорт** — дневник, чеклисты, отчёты
+- [x] **PDF/CSV экспорт дневника** — реализовано в diary_export.dart
+- [ ] **PDF экспорт чеклистов** — отдельный экспорт чеклистов
 - [ ] **Quick Allergen Lookup** — поиск аллергенов по блюду
+- [ ] **Редактирование шаблона чеклиста** — edit существующего (кнопка есть, показывает "Coming soon")
+- [ ] **Logout** — кнопка выхода из аккаунта
 
 #### Низкий приоритет
 - [ ] **AI Import рецептов** — загрузка видео → транскрипция → рецепт
@@ -485,7 +510,6 @@ ShellRoute (AppScaffold — bottom navigation):
 - [ ] **Pest Control** — контроль вредителей
 - [ ] **Recipe Versioning** — версионирование рецептов
 - [ ] **Supplier Approval** — утверждение поставщиков
-- [ ] **Logout** — кнопка выхода из аккаунта
 
 ---
 
@@ -493,28 +517,36 @@ ShellRoute (AppScaffold — bottom navigation):
 
 ### Supabase
 - **Anon key захардкожен** в `supabase.dart` (публичный ключ, безопасно)
-- **Email confirmation отключен** (`mailer_autoconfirm: true`) — не нужен для тестирования
-- **RPC-функции** (`setup_business`, `join_with_invite`) обходят RLS для setup-потока
-- **RLS-хелперы** (`get_my_business_id()`, `get_my_role()`) — SECURITY DEFINER функции
+- **Service role key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzenJnZ3JldWFydm9kY3FlcXJqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU3NjY3NiwiZXhwIjoyMDg5MTUyNjc2fQ.gcQOi5ifm_pZc-4Onu_qsC36xnWPisCrZnyIuCfVROY`
+- **Management API token:** `sbp_6d5c5011c0cdbb2f558a4bf2268609f8da2ec0f0`
+- **Email confirmation отключен** (`mailer_autoconfirm: true`) — для тестирования
+- **RPC-функции** (`setup_business`, `join_with_invite`) обходят RLS
+- **RLS-хелперы** (`get_my_business_id()`, `get_my_role()`) — SECURITY DEFINER
 - **Storage bucket** `documents` — private, max 10 MB, PDF/JPG/PNG/DOCX/XLSX
+- **RLS gotcha:** `.eq()` ДОЛЖЕН быть ДО `.order()` в цепочке Supabase запросов
+- **RLS gotcha:** Circular policies (A → B → A) вызывают infinite recursion. Решение: сделать одну из них открытой (`USING (true)`)
+- **PostgreSQL:** `CREATE POLICY IF NOT EXISTS` не работает. Используй `DROP POLICY IF EXISTS` + `CREATE POLICY`
 
 ### Flutter
 - **ВАЖНО: Язык интерфейса — ТОЛЬКО АНГЛИЙСКИЙ!** Все labels, buttons, messages, placeholders — на английском. Без русского текста в UI!
 - **Riverpod 3.x** — используем `Notifier`, НЕ `StateNotifier`; `.value` НЕ `.valueOrNull`
 - **GoRouter** — используем `context.go()` для навигации
-- **AnimatedBuilder** в setup_screen — работает с TabController
+- **FutureProvider.family** — НЕ использовать Dart Record types как generic. Используй обычный класс (пример: `CompletionHistoryData`)
+- **GoogleFonts.inter** — основной шрифт после редизайна Марии (НЕ Outfit)
 - **flutter_dotenv удалён** — ключи захардкожены (GitHub Pages блокирует .env файлы)
+- **Inactive recipes** — показываются внизу списка с 55% opacity, видны только chef/manager/owner
+- **Checklist visibility** — Owner видит все; остальные видят чеклисты по assigned_roles + supervisor_role + неназначенные
+- **Checklist sign-off** — если у чеклиста задан supervisor_role, после заполнения показывается "Awaiting Sign-off"; пользователь с этой ролью может подписать
+- **Diary screen** — больше НЕ использует diary_entries, opening/closing checks убраны; агрегирует checklist_completions + incidents за день
+- **PDF/CSV export** — conditional import (dart:html для web, share_plus для mobile); файлы file_saver_*.dart
+- **Dashboard** — Today's Tasks плашка убрана (opening/closing checks перенесены в чеклисты)
 
 ### Деплой
 - **GitHub Pages** — gh-pages branch содержит ТОЛЬКО `build/web/` contents
-- **Base href** — `flutter build web --base-href "/haccp-mobile/"`
+- **Base href** — `flutter build web --release --base-href "/haccp-mobile/"`
+- **Деплой:** cp build/web → /tmp → checkout gh-pages → rm all → cp back → commit → push → checkout main
 - **iOS Simulator** — `flutter run` запускает на подключённом симуляторе
 - **Apple Developer Account** — ожидает регистрации для TestFlight/App Store
-
-### Дизайн (обновлён Марией)
-- Зелёно-белая тема на дашборде
-- Обновлённый навбар с Material 3
-- Анимированные пустые состояния на чеклистах
 
 ---
 
@@ -529,17 +561,23 @@ flutter run
 flutter build web --release --base-href "/haccp-mobile/"
 
 # Деплой на GitHub Pages
-cp -r build/web /tmp/haccp-deploy
+cp -r build/web /tmp/haccp-web-build
 git checkout gh-pages
-git rm -rf .
-find . -not -path './.git/*' -not -path './.git' -delete
-cp -r /tmp/haccp-deploy/* .
+git rm -rf . --quiet 2>/dev/null
+cp -r /tmp/haccp-web-build/* .
 git add -A
-git commit -m "Deploy update"
+git commit -m "Deploy: описание"
 git push origin gh-pages
 git checkout main
-rm -rf /tmp/haccp-deploy
+rm -rf /tmp/haccp-web-build
 
 # Подтянуть изменения
 git fetch origin && git pull origin main
+
+# SQL запрос к Supabase через Management API
+curl -s -X POST \
+  "https://api.supabase.com/v1/projects/rszrggreuarvodcqeqrj/database/query" \
+  -H "Authorization: Bearer sbp_6d5c5011c0cdbb2f558a4bf2268609f8da2ec0f0" \
+  -H "Content-Type: application/json" \
+  --data '{"query": "SELECT ..."}'
 ```

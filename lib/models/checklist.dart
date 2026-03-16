@@ -1,3 +1,29 @@
+/// Returns the start of the current period for the given frequency.
+/// Used to check if a checklist has already been completed in the current period.
+DateTime getPeriodStart(ChecklistFrequency frequency) {
+  final now = DateTime.now();
+  switch (frequency) {
+    case ChecklistFrequency.daily:
+      return DateTime(now.year, now.month, now.day);
+    case ChecklistFrequency.weekly:
+      // Monday of the current week
+      final weekday = now.weekday; // 1=Mon, 7=Sun
+      final monday = now.subtract(Duration(days: weekday - 1));
+      return DateTime(monday.year, monday.month, monday.day);
+    case ChecklistFrequency.monthly:
+      return DateTime(now.year, now.month, 1);
+    case ChecklistFrequency.four_weekly:
+      // 28-day cycles from epoch 2024-01-01
+      final epoch = DateTime(2024, 1, 1);
+      final daysSinceEpoch = now.difference(epoch).inDays;
+      final cycleStart = (daysSinceEpoch ~/ 28) * 28;
+      return epoch.add(Duration(days: cycleStart));
+    case ChecklistFrequency.custom:
+      // No restriction — always allow filling
+      return DateTime(1970);
+  }
+}
+
 enum ChecklistFrequency {
   daily,
   weekly,
@@ -67,6 +93,7 @@ class ChecklistTemplate {
   final bool active;
   final DateTime createdAt;
   final List<ChecklistTemplateItem>? items;
+  final String? supervisorRole;
 
   ChecklistTemplate({
     required this.id,
@@ -80,6 +107,7 @@ class ChecklistTemplate {
     this.active = true,
     required this.createdAt,
     this.items,
+    this.supervisorRole,
   });
 
   factory ChecklistTemplate.fromJson(Map<String, dynamic> json) {
@@ -99,6 +127,7 @@ class ChecklistTemplate {
               .map((e) => ChecklistTemplateItem.fromJson(e))
               .toList()
           : null,
+      supervisorRole: json['supervisor_role'] as String?,
     );
   }
 
@@ -111,6 +140,7 @@ class ChecklistTemplate {
         'sfbb_section': sfbbSection,
         'is_default': isDefault,
         'active': active,
+        'supervisor_role': supervisorRole,
       };
 }
 
@@ -177,12 +207,15 @@ class ChecklistCompletion {
   final String completedBy;
   final DateTime completedAt;
   final String? signedOffBy;
+  final DateTime? signedOffAt;
   final String? notes;
   final String businessId;
   final List<ChecklistResponse>? responses;
   // Joined data
   final String? completedByName;
   final String? templateName;
+  final String? signedOffByName;
+  final String? templateSupervisorRole;
 
   ChecklistCompletion({
     required this.id,
@@ -190,12 +223,26 @@ class ChecklistCompletion {
     required this.completedBy,
     required this.completedAt,
     this.signedOffBy,
+    this.signedOffAt,
     this.notes,
     required this.businessId,
     this.responses,
     this.completedByName,
     this.templateName,
+    this.signedOffByName,
+    this.templateSupervisorRole,
   });
+
+  bool get isSignedOff => signedOffBy != null && signedOffAt != null;
+
+  /// Returns display status considering supervisor role
+  String get displayStatus {
+    if (templateSupervisorRole == null || templateSupervisorRole!.isEmpty) {
+      return 'Completed';
+    }
+    if (isSignedOff) return 'Signed Off';
+    return 'Awaiting Sign-off';
+  }
 
   factory ChecklistCompletion.fromJson(Map<String, dynamic> json) {
     return ChecklistCompletion(
@@ -204,6 +251,9 @@ class ChecklistCompletion {
       completedBy: json['completed_by'] as String,
       completedAt: DateTime.parse(json['completed_at'] as String),
       signedOffBy: json['signed_off_by'] as String?,
+      signedOffAt: json['signed_off_at'] != null
+          ? DateTime.parse(json['signed_off_at'] as String)
+          : null,
       notes: json['notes'] as String?,
       businessId: json['business_id'] as String,
       responses: json['checklist_responses'] != null
@@ -216,6 +266,12 @@ class ChecklistCompletion {
           : null,
       templateName: json['checklist_templates'] != null
           ? (json['checklist_templates'] as Map)['name'] as String?
+          : null,
+      templateSupervisorRole: json['checklist_templates'] != null
+          ? (json['checklist_templates'] as Map)['supervisor_role'] as String?
+          : null,
+      signedOffByName: json['signer'] != null
+          ? (json['signer'] as Map)['full_name'] as String?
           : null,
     );
   }

@@ -34,6 +34,7 @@ class _ChecklistManageScreenState
   final _descCtrl = TextEditingController();
   ChecklistFrequency _frequency = ChecklistFrequency.daily;
   final List<String> _assignedRoles = [];
+  String? _supervisorRole;
   bool _saving = false;
   final List<_ChecklistItemEntry> _items = [];
 
@@ -98,6 +99,7 @@ class _ChecklistManageScreenState
                 : _assignedRoles,
             'business_id': profile.businessId,
             'active': true,
+            'supervisor_role': _supervisorRole,
           })
           .select('id')
           .single();
@@ -340,6 +342,119 @@ class _ChecklistManageScreenState
                       ),
                     );
                   }).toList(),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── Supervisor section ──
+            _SectionHeader(
+              icon: Icons.verified_user_rounded,
+              title: 'Supervisor',
+              color: const Color(0xFFD97706),
+            ),
+            const SizedBox(height: 14),
+            _FormCard(
+              children: [
+                Text(
+                  'Optionally assign a role to sign off completions',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.midText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Leave as "None" if sign-off is not required',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.lightText,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _supervisorRole = null);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _supervisorRole == null
+                              ? const Color(0xFFD97706)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _supervisorRole == null
+                                ? const Color(0xFFD97706)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Text(
+                          'None',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _supervisorRole == null
+                                ? Colors.white
+                                : AppColors.darkText,
+                          ),
+                        ),
+                      ),
+                    ),
+                    ...UserRole.values.map((role) {
+                      final selected = _supervisorRole == role.name;
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _supervisorRole = role.name);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFFD97706)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selected
+                                  ? const Color(0xFFD97706)
+                                  : const Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (selected) ...[
+                                const Icon(Icons.check_rounded,
+                                    size: 16, color: Colors.white),
+                                const SizedBox(width: 6),
+                              ],
+                              Text(
+                                role.displayName,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: selected
+                                      ? Colors.white
+                                      : AppColors.darkText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                 ),
               ],
             ),

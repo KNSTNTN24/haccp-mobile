@@ -23,15 +23,67 @@ final checklistsProvider = FutureProvider<List<ChecklistTemplate>>((ref) async {
   return (response as List).map((e) => ChecklistTemplate.fromJson(e)).toList();
 });
 
+/// Loads current-period completions for all checklists in a single bulk query.
+final checklistCompletionsProvider =
+    FutureProvider<Map<String, ChecklistCompletion>>((ref) async {
+  final profile = await ref.watch(profileProvider.future);
+  if (profile == null) return {};
+
+  // We fetch ALL recent completions and filter client-side by period
+  final response = await SupabaseConfig.client
+      .from('checklist_completions')
+      .select('*, profiles:completed_by(full_name), signer:profiles!signed_off_by(full_name)')
+      .eq('business_id', profile.businessId)
+      .order('completed_at', ascending: false);
+
+  final completions = (response as List)
+      .map((e) => ChecklistCompletion.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  // Group by template_id — keep only the most recent per template
+  final Map<String, ChecklistCompletion> latestByTemplate = {};
+  for (final c in completions) {
+    if (!latestByTemplate.containsKey(c.templateId)) {
+      latestByTemplate[c.templateId] = c;
+    }
+  }
+
+  return latestByTemplate;
+});
+
+enum ChecklistStatus { pending, completed, awaitingSignOff, signedOff }
+
+ChecklistStatus getChecklistStatus(
+    ChecklistTemplate template, ChecklistCompletion? completion) {
+  if (completion == null) return ChecklistStatus.pending;
+
+  // Check if the completion is within the current period
+  final periodStart = getPeriodStart(template.frequency);
+  if (completion.completedAt.isBefore(periodStart)) {
+    return ChecklistStatus.pending;
+  }
+
+  // Has completion in current period
+  if (template.supervisorRole == null || template.supervisorRole!.isEmpty) {
+    return ChecklistStatus.completed;
+  }
+  if (completion.isSignedOff) {
+    return ChecklistStatus.signedOff;
+  }
+  return ChecklistStatus.awaitingSignOff;
+}
+
 class ChecklistsScreen extends ConsumerWidget {
   const ChecklistsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final checklistsAsync = ref.watch(checklistsProvider);
+    final completionsAsync = ref.watch(checklistCompletionsProvider);
     final profile = ref.watch(profileProvider).value;
     final isManager =
         profile?.role == UserRole.owner || profile?.role == UserRole.manager;
+    final isOwner = profile?.role == UserRole.owner;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -66,7 +118,10 @@ class ChecklistsScreen extends ConsumerWidget {
           : null,
       body: RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: () async => ref.invalidate(checklistsProvider),
+        onRefresh: () async {
+          ref.invalidate(checklistsProvider);
+          ref.invalidate(checklistCompletionsProvider);
+        },
         child: checklistsAsync.when(
           loading: () => const Center(
             child: CircularProgressIndicator(
@@ -76,9 +131,15 @@ class ChecklistsScreen extends ConsumerWidget {
           ),
           error: (e, _) => _ErrorState(message: '$e'),
           data: (checklists) {
+            final completionsMap = completionsAsync.value ?? {};
+
+            // Visibility filtering
             final filtered = checklists.where((c) {
+              if (isOwner) return true;
+              final myRole = profile?.role.name ?? '';
+              if (c.supervisorRole == myRole) return true;
               if (c.assignedRoles.isEmpty) return true;
-              return c.assignedRoles.contains(profile?.role.name ?? '');
+              return c.assignedRoles.contains(myRole);
             }).toList();
 
             if (filtered.isEmpty) {
@@ -90,7 +151,13 @@ class ChecklistsScreen extends ConsumerWidget {
               itemCount: filtered.length,
               itemBuilder: (context, index) {
                 final c = filtered[index];
-                return _ChecklistCard(checklist: c);
+                final completion = completionsMap[c.id];
+                final status = getChecklistStatus(c, completion);
+                return _ChecklistCard(
+                  checklist: c,
+                  status: status,
+                  completion: completion,
+                );
               },
             );
           },
@@ -381,7 +448,13 @@ class _ClipboardPainter extends CustomPainter {
 
 class _ChecklistCard extends ConsumerWidget {
   final ChecklistTemplate checklist;
-  const _ChecklistCard({required this.checklist});
+  final ChecklistStatus status;
+  final ChecklistCompletion? completion;
+  const _ChecklistCard({
+    required this.checklist,
+    required this.status,
+    this.completion,
+  });
 
   Future<void> _deleteChecklist(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
@@ -428,6 +501,59 @@ class _ChecklistCard extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Widget _buildStatusBadge() {
+    Color bgColor;
+    Color textColor;
+    String label;
+    IconData icon;
+
+    switch (status) {
+      case ChecklistStatus.pending:
+        bgColor = const Color(0xFFFEF3C7);
+        textColor = const Color(0xFFD97706);
+        label = 'Pending';
+        icon = Icons.schedule;
+      case ChecklistStatus.completed:
+        bgColor = AppColors.green50;
+        textColor = AppColors.green600;
+        label = 'Completed';
+        icon = Icons.check_circle_outline;
+      case ChecklistStatus.awaitingSignOff:
+        bgColor = AppColors.orange50;
+        textColor = AppColors.orange600;
+        label = 'Awaiting Sign-off';
+        icon = Icons.pending_actions;
+      case ChecklistStatus.signedOff:
+        bgColor = AppColors.green50;
+        textColor = AppColors.green600;
+        label = 'Signed Off';
+        icon = Icons.verified;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -503,6 +629,8 @@ class _ChecklistCard extends ConsumerWidget {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        _buildStatusBadge(),
                         const SizedBox(width: 10),
                         Icon(Icons.list_rounded,
                             size: 14, color: AppColors.lightText),

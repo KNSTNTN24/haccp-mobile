@@ -45,8 +45,6 @@ class DashboardScreen extends ConsumerWidget {
                 data: (stats) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _DailyProgress(stats: stats),
-                    const SizedBox(height: 28),
                     _SectionLabel('Overview'),
                     const SizedBox(height: 14),
                     _StatsGrid(stats: stats),
