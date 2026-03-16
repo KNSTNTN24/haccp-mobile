@@ -1,6 +1,6 @@
 # HACCP Mobile — Полное состояние проекта
 
-> Обновлено: 2026-03-15
+> Обновлено: 2026-03-16
 
 ## Обзор
 
@@ -49,10 +49,12 @@ lib/
 │   ├── incident.dart                  # Incident
 │   ├── supplier.dart                  # Supplier
 │   ├── notification.dart              # AppNotification
-│   └── diary_entry.dart               # DiaryEntry
+│   ├── diary_entry.dart               # DiaryEntry
+│   └── document.dart                  # Document, DocumentAccess, AccessLevel
 ├── providers/
 │   ├── auth_provider.dart             # Auth + Profile + Business providers
-│   └── dashboard_provider.dart        # DashboardStats aggregation
+│   ├── dashboard_provider.dart        # DashboardStats aggregation
+│   └── documents_provider.dart        # Documents CRUD + Storage upload
 ├── screens/
 │   ├── auth/
 │   │   ├── login_screen.dart          # Email/password login
@@ -78,6 +80,10 @@ lib/
 │   │   └── suppliers_screen.dart      # Поставщики
 │   ├── team/
 │   │   └── team_screen.dart           # Команда + приглашения
+│   ├── documents/
+│   │   ├── documents_screen.dart      # Список документов + фильтр
+│   │   ├── document_upload_screen.dart # Загрузка документа
+│   │   └── document_detail_screen.dart # Просмотр + управление доступом
 │   ├── notifications/
 │   │   └── notifications_screen.dart  # Уведомления
 │   └── ai_import/
@@ -108,6 +114,9 @@ ShellRoute (AppScaffold — bottom navigation):
   /diary                  → DiaryScreen
   /incidents              → IncidentsScreen
   /suppliers              → SuppliersScreen
+  /documents              → DocumentsScreen
+    /documents/upload     → DocumentUploadScreen (manager/owner)
+    /documents/:id        → DocumentDetailScreen
   /team                   → TeamScreen
   /notifications          → NotificationsScreen
 ```
@@ -319,7 +328,34 @@ ShellRoute (AppScaffold — bottom navigation):
 | date | DATE NOT NULL | |
 | business_id | UUID NOT NULL | FK |
 
-#### 16. `training_records` (не используется в мобильном)
+#### 16. `documents`
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID PK | gen_random_uuid() |
+| title | TEXT NOT NULL | Название документа |
+| description | TEXT | Описание |
+| category | TEXT NOT NULL | certificate/license/policy/instruction/contract/inspection/training/other |
+| file_url | TEXT NOT NULL | Путь в Supabase Storage |
+| file_name | TEXT NOT NULL | Оригинальное имя файла |
+| file_size | BIGINT | Размер в байтах |
+| file_type | TEXT | MIME-тип |
+| uploaded_by | UUID NOT NULL | FK → profiles, CASCADE |
+| business_id | UUID NOT NULL | FK → businesses, CASCADE |
+| access_level | TEXT NOT NULL | all/managers_only/owner_only/custom |
+| expires_at | DATE | Срок действия |
+| created_at / updated_at | TIMESTAMPTZ | Автоматически |
+
+#### 17. `document_access` (для access_level = 'custom')
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID PK | |
+| document_id | UUID NOT NULL | FK → documents, CASCADE |
+| profile_id | UUID NOT NULL | FK → profiles, CASCADE |
+| granted_by | UUID NOT NULL | FK → profiles |
+| created_at | TIMESTAMPTZ | NOW() |
+| UNIQUE(document_id, profile_id) | | |
+
+#### 18. `training_records` (не используется в мобильном)
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID PK | |
@@ -366,6 +402,8 @@ ShellRoute (AppScaffold — bottom navigation):
 | suppliers | Свой бизнес | Manager/Owner | Manager/Owner | Manager/Owner |
 | incidents | Свой бизнес | Свой (reported_by) | — | — |
 | diary_entries | Свой бизнес | Свой бизнес | Свой бизнес | Свой бизнес |
+| documents | По access_level + role | Manager/Owner | Owner + uploaded_by | Owner |
+| document_access | Свой бизнес | Manager/Owner | — | Owner |
 | notifications | Свои (user_id) | — | Свои | — |
 
 ### RPC-функции (SECURITY DEFINER)
@@ -411,6 +449,7 @@ ShellRoute (AppScaffold — bottom navigation):
 8. **Поставщики** — Список, добавление (контакт, телефон, товары, дни доставки)
 9. **Команда** — Список участников, приглашение по токену
 10. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное
+11. **Документы** — Загрузка файлов (PDF, JPG, DOCX, XLSX), категории, поиск, управление доступом (all/managers/owner/custom), срок действия, Supabase Storage
 
 ### 🟡 Частично
 
@@ -457,6 +496,7 @@ ShellRoute (AppScaffold — bottom navigation):
 - **Email confirmation отключен** (`mailer_autoconfirm: true`) — не нужен для тестирования
 - **RPC-функции** (`setup_business`, `join_with_invite`) обходят RLS для setup-потока
 - **RLS-хелперы** (`get_my_business_id()`, `get_my_role()`) — SECURITY DEFINER функции
+- **Storage bucket** `documents` — private, max 10 MB, PDF/JPG/PNG/DOCX/XLSX
 
 ### Flutter
 - **Riverpod 3.x** — используем `Notifier`, НЕ `StateNotifier`; `.value` НЕ `.valueOrNull`
