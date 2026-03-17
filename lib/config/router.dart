@@ -41,7 +41,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
       if (isLoggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
-        // Check if user has a profile — if not, send to setup
         final hasProfile = profile.whenOrNull(data: (p) => p != null) ?? false;
         if (!hasProfile) return '/setup';
         return '/dashboard';
@@ -63,6 +62,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/setup',
         builder: (context, state) => const SetupScreen(),
       ),
+
+      // ── Detail screens — OUTSIDE shell (own AppBar, full screen push) ──
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/recipes/new',
+        builder: (context, state) => const RecipeNewScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/recipes/:id',
+        builder: (context, state) => RecipeDetailScreen(
+          recipeId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checklists/new',
+        builder: (context, state) => const ChecklistManageScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checklists/:id',
+        builder: (context, state) => ChecklistDetailScreen(
+          templateId: state.pathParameters['id']!,
+        ),
+      ),
+
+      // ── Tab screens — INSIDE shell (shared bottom nav) ──
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => AppScaffold(child: child),
@@ -78,36 +105,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: ChecklistsScreen(),
             ),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => const ChecklistManageScreen(),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => ChecklistDetailScreen(
-                  templateId: state.pathParameters['id']!,
-                ),
-              ),
-            ],
           ),
           GoRoute(
             path: '/recipes',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: RecipesScreen(),
             ),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => const RecipeNewScreen(),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => RecipeDetailScreen(
-                  recipeId: state.pathParameters['id']!,
-                ),
-              ),
-            ],
           ),
           GoRoute(
             path: '/menu',

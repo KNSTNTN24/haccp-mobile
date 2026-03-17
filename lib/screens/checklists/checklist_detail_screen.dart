@@ -85,7 +85,11 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Checklist submitted successfully!')),
         );
-        context.go('/checklists');
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/checklists');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -128,8 +132,14 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
       appBar: AppBar(
         title: Text(_template!.name),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/checklists'),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/checklists');
+            }
+          },
         ),
       ),
       body: Column(
