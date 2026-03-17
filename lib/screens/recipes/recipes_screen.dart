@@ -290,18 +290,22 @@ class _DietaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg; Color fg;
+    Color color;
     switch (label) {
-      case 'Vegan': bg = const Color(0xFFDCFCE7); fg = const Color(0xFF16A34A); break;
-      case 'Vegetarian': bg = const Color(0xFFD1FAE5); fg = const Color(0xFF059669); break;
-      case 'GF': bg = const Color(0xFFDBEAFE); fg = const Color(0xFF2563EB); break;
-      case 'DF': bg = const Color(0xFFFEF3C7); fg = const Color(0xFFD97706); break;
-      default: bg = Colors.grey.shade100; fg = Colors.grey.shade700;
+      case 'Vegan': color = const Color(0xFF16A34A); break;
+      case 'Vegetarian': color = const Color(0xFF059669); break;
+      case 'GF': color = const Color(0xFF2563EB); break;
+      case 'DF': color = const Color(0xFFD97706); break;
+      default: color = Colors.grey.shade600;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-      child: Text(label, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
     );
   }
 }

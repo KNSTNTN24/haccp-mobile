@@ -153,13 +153,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               if (hasCooking) ...[
                 const SizedBox(height: 16),
                 Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    if (recipe.cookingTemp != null) _statChip(Icons.thermostat_rounded, '${recipe.cookingTemp!.toStringAsFixed(0)}°C', const Color(0xFFEA580C)),
-                    if (recipe.cookingTemp != null && recipe.cookingTime != null) Container(width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 14), color: AppColors.divider),
-                    if (recipe.cookingTime != null) _statChip(Icons.timer_rounded, '${recipe.cookingTime!.toStringAsFixed(0)} ${recipe.cookingTimeUnit ?? 'min'}', const Color(0xFF2563EB)),
-                    if ((recipe.cookingTemp != null || recipe.cookingTime != null) && recipe.cookingMethod != null) Container(width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 14), color: AppColors.divider),
-                    if (recipe.cookingMethod != null) _statChip(Icons.outdoor_grill_rounded, recipe.cookingMethod!, const Color(0xFF059669)),
-                  ])),
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 10,
+                    children: [
+                      if (recipe.cookingTemp != null) _statChip(Icons.thermostat_rounded, '${recipe.cookingTemp!.toStringAsFixed(0)}°C', const Color(0xFFEA580C)),
+                      if (recipe.cookingTime != null) _statChip(Icons.timer_rounded, '${recipe.cookingTime!.toStringAsFixed(0)} ${recipe.cookingTimeUnit ?? 'min'}', const Color(0xFF2563EB)),
+                      if (recipe.cookingMethod != null) _statChip(Icons.outdoor_grill_rounded, recipe.cookingMethod!, const Color(0xFF059669)),
+                    ],
+                  )),
               ],
             ])),
 
@@ -171,16 +173,23 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 const SizedBox(height: 14),
                 if (hasDietary) ...[
                   Wrap(spacing: 8, runSpacing: 8, children: recipe.dietaryLabels.map((label) {
-                    Color bg; Color fg;
+                    Color color;
                     switch (label) {
-                      case 'Vegan': bg = const Color(0xFFDCFCE7); fg = const Color(0xFF16A34A); break;
-                      case 'Vegetarian': bg = const Color(0xFFD1FAE5); fg = const Color(0xFF059669); break;
-                      case 'GF': bg = const Color(0xFFDBEAFE); fg = const Color(0xFF2563EB); break;
-                      case 'DF': bg = const Color(0xFFFEF3C7); fg = const Color(0xFFD97706); break;
-                      default: bg = Colors.grey.shade100; fg = Colors.grey.shade700;
+                      case 'Vegan': color = const Color(0xFF16A34A); break;
+                      case 'Vegetarian': color = const Color(0xFF059669); break;
+                      case 'GF': color = const Color(0xFF2563EB); break;
+                      case 'DF': color = const Color(0xFFD97706); break;
+                      default: color = Colors.grey.shade600;
                     }
-                    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-                      child: Text(label, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: fg)));
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: color.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
+                    );
                   }).toList()),
                   if (hasAllergens) const SizedBox(height: 10),
                 ],

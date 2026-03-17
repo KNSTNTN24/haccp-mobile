@@ -71,6 +71,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/setup',
         builder: (context, state) => const SetupScreen(),
       ),
+
+      // ── Detail screens — OUTSIDE shell (own AppBar, no bottom nav) ──
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/recipes/new',
+        builder: (context, state) => const RecipeNewScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/recipes/edit/:id',
+        builder: (context, state) => RecipeEditScreen(recipeId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/recipes/:id',
+        builder: (context, state) => RecipeDetailScreen(recipeId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checklists/new',
+        builder: (context, state) => const ChecklistManageScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checklists/:id/history',
+        builder: (context, state) => ChecklistHistoryScreen(templateId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checklists/:id',
+        builder: (context, state) => ChecklistDetailScreen(templateId: state.pathParameters['id']!),
+      ),
+
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => AppScaffold(child: child),
@@ -86,50 +119,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: ChecklistsScreen(),
             ),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => const ChecklistManageScreen(),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => ChecklistDetailScreen(
-                  templateId: state.pathParameters['id']!,
-                ),
-                routes: [
-                  GoRoute(
-                    path: 'history',
-                    builder: (context, state) => ChecklistHistoryScreen(
-                      templateId: state.pathParameters['id']!,
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
           GoRoute(
             path: '/recipes',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: RecipesScreen(),
             ),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => const RecipeNewScreen(),
-              ),
-              GoRoute(
-                path: 'edit/:id',
-                builder: (context, state) => RecipeEditScreen(
-                  recipeId: state.pathParameters['id']!,
-                ),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => RecipeDetailScreen(
-                  recipeId: state.pathParameters['id']!,
-                ),
-              ),
-            ],
           ),
           GoRoute(
             path: '/menu',
