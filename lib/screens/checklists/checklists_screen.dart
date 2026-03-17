@@ -163,8 +163,6 @@ class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
 
             return Column(
               children: [
-                // SFBB Filter chips
-                _buildSectionFilterChips(),
                 // Checklist list
                 Expanded(
                   child: filtered.isEmpty
@@ -181,7 +179,7 @@ class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                           itemCount: filtered.length,
                           itemBuilder: (context, index) {
                             final c = filtered[index];
@@ -205,7 +203,7 @@ class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
 
   Widget _buildSectionFilterChips() {
     return SizedBox(
-      height: 48,
+      height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -213,16 +211,12 @@ class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
           _buildFilterChip('All', _selectedSection == null, () {
             setState(() => _selectedSection = null);
           }),
-          const SizedBox(width: 8),
           ...SfbbSection.values.map((section) {
             final isSelected = _selectedSection == section;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _buildFilterChip(
-                section.displayName,
-                isSelected,
-                () => setState(() => _selectedSection = isSelected ? null : section),
-              ),
+            return _buildFilterChip(
+              section.displayName,
+              isSelected,
+              () => setState(() => _selectedSection = isSelected ? null : section),
             );
           }),
         ],
@@ -231,35 +225,26 @@ class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
   }
 
   Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0891B2) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF0891B2)
-                : const Color(0xFFE5E7EB),
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : const Color(0xFFE5E7EB),
+            ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF0891B2).withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.midText,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : AppColors.midText,
+            ),
           ),
         ),
       ),
@@ -659,161 +644,109 @@ class _ChecklistCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemCount = checklist.items?.length ?? 0;
-    final profile = ref.watch(profileProvider).value;
-    final isManager =
-        profile?.role == UserRole.owner || profile?.role == UserRole.manager;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onTap: () => context.go('/checklists/${checklist.id}'),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(14),
+    // Status colors
+    Color statusColor;
+    String statusLabel;
+    IconData statusIcon;
+    switch (status) {
+      case ChecklistStatus.pending:
+        statusColor = const Color(0xFFD97706);
+        statusLabel = 'Pending';
+        statusIcon = Icons.schedule_rounded;
+      case ChecklistStatus.completed:
+        statusColor = const Color(0xFF059669);
+        statusLabel = 'Done';
+        statusIcon = Icons.check_circle_rounded;
+      case ChecklistStatus.awaitingSignOff:
+        statusColor = const Color(0xFFEA580C);
+        statusLabel = 'Sign-off';
+        statusIcon = Icons.pending_actions_rounded;
+      case ChecklistStatus.signedOff:
+        statusColor = const Color(0xFF059669);
+        statusLabel = 'Signed';
+        statusIcon = Icons.verified_rounded;
+    }
+
+    return GestureDetector(
+      onTap: () => context.go('/checklists/${checklist.id}'),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8ECF0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title + chevron
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    checklist.name,
+                    style: GoogleFonts.inter(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A2E),
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.checklist_rounded,
-                  color: Color(0xFF059669),
-                  size: 24,
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.lightText),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Status badge + frequency + items
+            Row(
+              children: [
+                // Status
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, size: 15, color: statusColor),
+                      const SizedBox(width: 5),
+                      Text(statusLabel,
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: statusColor)),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      checklist.name,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.darkText,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            checklist.frequency.displayName,
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        if (checklist.sfbbSection != null &&
-                            checklist.sfbbSection!.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0891B2).withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              SfbbSection.fromString(checklist.sfbbSection).displayName,
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF0891B2),
-                              ),
-                            ),
-                          ),
-                        _buildStatusBadge(),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.list_rounded,
-                                size: 14, color: AppColors.lightText),
-                            const SizedBox(width: 3),
-                            Text(
-                              '$itemCount items',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.midText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(width: 10),
+                // Frequency
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Text(checklist.frequency.displayName,
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
                 ),
-              ),
-              if (isManager)
-                PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, size: 20, color: AppColors.lightText),
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Coming soon', style: GoogleFonts.inter())),
-                      );
-                    } else if (value == 'delete') {
-                      _deleteChecklist(context, ref);
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.edit_outlined, size: 18, color: AppColors.midText),
-                          const SizedBox(width: 10),
-                          Text('Edit', style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.delete_outline, size: 18, color: AppColors.red600),
-                          const SizedBox(width: 10),
-                          Text('Delete', style: GoogleFonts.inter(fontSize: 14, color: AppColors.red600)),
-                        ],
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Icon(Icons.chevron_right_rounded,
-                    size: 22, color: AppColors.lightText),
-            ],
-          ),
+                const Spacer(),
+                // Items count
+                Text('$itemCount items',
+                  style: GoogleFonts.inter(fontSize: 14, color: AppColors.midText)),
+              ],
+            ),
+          ],
         ),
       ),
     );

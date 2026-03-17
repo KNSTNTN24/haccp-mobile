@@ -150,7 +150,7 @@ class _ChecklistManageScreenState
                 borderRadius: BorderRadius.circular(12)),
           ),
         );
-        context.pop();
+        context.go('/checklists');
       }
     } catch (e) {
       if (mounted) {
