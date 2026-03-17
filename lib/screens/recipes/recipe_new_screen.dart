@@ -122,7 +122,15 @@ class _RecipeNewScreenState extends ConsumerState<RecipeNewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('New Recipe', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)), backgroundColor: AppColors.darkBlue, foregroundColor: AppColors.white),
+      appBar: AppBar(
+        title: Text('New Recipe', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/recipes'); }
+          },
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(

@@ -175,8 +175,10 @@ class _ChecklistManageScreenState
         title: Text('New Checklist',
             style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () {
+            if (context.canPop()) { context.pop(); } else { context.go('/checklists'); }
+          },
         ),
       ),
       body: Form(
