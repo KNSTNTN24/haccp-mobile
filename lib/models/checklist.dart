@@ -58,7 +58,8 @@ enum ChecklistItemType {
   tick,
   temperature,
   text,
-  yes_no;
+  yes_no,
+  photo;
 
   String get displayName {
     switch (this) {
@@ -70,6 +71,8 @@ enum ChecklistItemType {
         return 'Text';
       case ChecklistItemType.yes_no:
         return 'Yes/No';
+      case ChecklistItemType.photo:
+        return 'Photo';
     }
   }
 
@@ -77,6 +80,43 @@ enum ChecklistItemType {
     return ChecklistItemType.values.firstWhere(
       (e) => e.name == value,
       orElse: () => ChecklistItemType.tick,
+    );
+  }
+}
+
+enum SfbbSection {
+  cross_contamination,
+  cleaning,
+  chilling,
+  cooking,
+  management,
+  training,
+  general;
+
+  String get displayName {
+    switch (this) {
+      case SfbbSection.cross_contamination:
+        return 'Cross-Contamination';
+      case SfbbSection.cleaning:
+        return 'Cleaning';
+      case SfbbSection.chilling:
+        return 'Chilling';
+      case SfbbSection.cooking:
+        return 'Cooking';
+      case SfbbSection.management:
+        return 'Management';
+      case SfbbSection.training:
+        return 'Training';
+      case SfbbSection.general:
+        return 'General';
+    }
+  }
+
+  static SfbbSection fromString(String? value) {
+    if (value == null) return SfbbSection.general;
+    return SfbbSection.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => SfbbSection.general,
     );
   }
 }

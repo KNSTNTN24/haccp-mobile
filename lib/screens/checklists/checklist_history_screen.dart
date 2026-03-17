@@ -314,6 +314,24 @@ class _ChecklistHistoryScreenState
   ) {
     final item = itemMap[response.itemId];
     final itemName = item?.name ?? 'Unknown Item';
+    final isPhoto = item?.itemType == ChecklistItemType.photo;
+
+    if (isPhoto && response.value.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              itemName,
+              style: GoogleFonts.inter(fontSize: 14, color: AppColors.midText),
+            ),
+            const SizedBox(height: 8),
+            _buildHistoryPhotoThumbnail(response.value),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -358,6 +376,49 @@ class _ChecklistHistoryScreenState
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildHistoryPhotoThumbnail(String storagePath) {
+    return FutureBuilder<String>(
+      future: SupabaseConfig.client.storage
+          .from('documents')
+          .createSignedUrl(storagePath, 3600),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Row(
+            children: [
+              Icon(Icons.broken_image_outlined, size: 18, color: AppColors.lightText),
+              const SizedBox(width: 6),
+              Text('Photo unavailable', style: GoogleFonts.inter(fontSize: 13, color: AppColors.lightText)),
+            ],
+          );
+        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            snapshot.data!,
+            height: 120,
+            width: 160,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              height: 80,
+              width: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.broken_image_outlined, size: 24, color: AppColors.lightText),
+            ),
+          ),
+        );
+      },
     );
   }
 }

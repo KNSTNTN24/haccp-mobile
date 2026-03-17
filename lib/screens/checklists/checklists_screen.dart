@@ -73,11 +73,18 @@ ChecklistStatus getChecklistStatus(
   return ChecklistStatus.awaitingSignOff;
 }
 
-class ChecklistsScreen extends ConsumerWidget {
+class ChecklistsScreen extends ConsumerStatefulWidget {
   const ChecklistsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChecklistsScreen> createState() => _ChecklistsScreenState();
+}
+
+class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
+  SfbbSection? _selectedSection; // null = All
+
+  @override
+  Widget build(BuildContext context) {
     final checklistsAsync = ref.watch(checklistsProvider);
     final completionsAsync = ref.watch(checklistCompletionsProvider);
     final profile = ref.watch(profileProvider).value;
@@ -134,7 +141,7 @@ class ChecklistsScreen extends ConsumerWidget {
             final completionsMap = completionsAsync.value ?? {};
 
             // Visibility filtering
-            final filtered = checklists.where((c) {
+            final visible = checklists.where((c) {
               if (isOwner) return true;
               final myRole = profile?.role.name ?? '';
               if (c.supervisorRole == myRole) return true;
@@ -142,25 +149,118 @@ class ChecklistsScreen extends ConsumerWidget {
               return c.assignedRoles.contains(myRole);
             }).toList();
 
-            if (filtered.isEmpty) {
+            // SFBB section filtering
+            final filtered = _selectedSection == null
+                ? visible
+                : visible.where((c) {
+                    final section = SfbbSection.fromString(c.sfbbSection);
+                    return section == _selectedSection;
+                  }).toList();
+
+            if (visible.isEmpty) {
               return _EmptyState(isManager: isManager);
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final c = filtered[index];
-                final completion = completionsMap[c.id];
-                final status = getChecklistStatus(c, completion);
-                return _ChecklistCard(
-                  checklist: c,
-                  status: status,
-                  completion: completion,
-                );
-              },
+            return Column(
+              children: [
+                // SFBB Filter chips
+                _buildSectionFilterChips(),
+                // Checklist list
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(40),
+                            child: Text(
+                              'No checklists in this category',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                color: AppColors.midText,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final c = filtered[index];
+                            final completion = completionsMap[c.id];
+                            final status = getChecklistStatus(c, completion);
+                            return _ChecklistCard(
+                              checklist: c,
+                              status: status,
+                              completion: completion,
+                            );
+                          },
+                        ),
+                ),
+              ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionFilterChips() {
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: [
+          _buildFilterChip('All', _selectedSection == null, () {
+            setState(() => _selectedSection = null);
+          }),
+          const SizedBox(width: 8),
+          ...SfbbSection.values.map((section) {
+            final isSelected = _selectedSection == section;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _buildFilterChip(
+                section.displayName,
+                isSelected,
+                () => setState(() => _selectedSection = isSelected ? null : section),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0891B2) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0891B2)
+                : const Color(0xFFE5E7EB),
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF0891B2).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : AppColors.midText,
+          ),
         ),
       ),
     );
@@ -611,7 +711,10 @@ class _ChecklistCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -629,19 +732,40 @@ class _ChecklistCard extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        _buildStatusBadge(),
-                        const SizedBox(width: 10),
-                        Icon(Icons.list_rounded,
-                            size: 14, color: AppColors.lightText),
-                        const SizedBox(width: 3),
-                        Text(
-                          '$itemCount items',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.midText,
+                        if (checklist.sfbbSection != null &&
+                            checklist.sfbbSection!.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0891B2).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              SfbbSection.fromString(checklist.sfbbSection).displayName,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0891B2),
+                              ),
+                            ),
                           ),
+                        _buildStatusBadge(),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.list_rounded,
+                                size: 14, color: AppColors.lightText),
+                            const SizedBox(width: 3),
+                            Text(
+                              '$itemCount items',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.midText,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

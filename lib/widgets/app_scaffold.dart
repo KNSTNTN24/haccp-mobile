@@ -29,7 +29,8 @@ class AppScaffold extends ConsumerWidget {
         location.startsWith('/team') ||
         location.startsWith('/documents') ||
         location.startsWith('/notifications') ||
-        location.startsWith('/ai-import')) return 4;
+        location.startsWith('/ai-import') ||
+        location.startsWith('/deliveries')) return 4;
     return 0;
   }
 
@@ -153,6 +154,15 @@ class AppScaffold extends ConsumerWidget {
                         onTap: () {
                           Navigator.pop(context);
                           context.go('/incidents');
+                        },
+                      ),
+                      _MoreItem(
+                        icon: Icons.inventory_2_rounded,
+                        label: 'Deliveries',
+                        color: const Color(0xFF0891B2),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/deliveries');
                         },
                       ),
                       if (isManager) ...[

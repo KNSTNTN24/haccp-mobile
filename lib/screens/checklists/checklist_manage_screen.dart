@@ -35,6 +35,7 @@ class _ChecklistManageScreenState
   ChecklistFrequency _frequency = ChecklistFrequency.daily;
   final List<String> _assignedRoles = [];
   String? _supervisorRole;
+  SfbbSection _sfbbSection = SfbbSection.general;
   bool _saving = false;
   final List<_ChecklistItemEntry> _items = [];
 
@@ -100,6 +101,7 @@ class _ChecklistManageScreenState
             'business_id': profile.businessId,
             'active': true,
             'supervisor_role': _supervisorRole,
+            'sfbb_section': _sfbbSection.name,
           })
           .select('id')
           .single();
@@ -255,6 +257,67 @@ class _ChecklistManageScreenState
                         ),
                         child: Text(
                           f.displayName,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: selected
+                                ? Colors.white
+                                : AppColors.darkText,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── SFBB Category section ──
+            _SectionHeader(
+              icon: Icons.category_rounded,
+              title: 'SFBB Category',
+              color: const Color(0xFF0891B2),
+            ),
+            const SizedBox(height: 14),
+            _FormCard(
+              children: [
+                Text(
+                  'Which SFBB section does this relate to?',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.midText,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: SfbbSection.values.map((s) {
+                    final selected = _sfbbSection == s;
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _sfbbSection = s);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? const Color(0xFF0891B2)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected
+                                ? const Color(0xFF0891B2)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Text(
+                          s.displayName,
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,

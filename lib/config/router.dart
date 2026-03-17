@@ -24,6 +24,8 @@ import '../screens/documents/documents_screen.dart';
 import '../screens/documents/document_upload_screen.dart';
 import '../screens/documents/document_detail_screen.dart';
 import '../screens/ai_import/ai_import_screen.dart';
+import '../screens/deliveries/deliveries_screen.dart';
+import '../screens/deliveries/delivery_new_screen.dart';
 import '../widgets/app_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -46,7 +48,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/setup';
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
+      if (isLoggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register' || state.matchedLocation == '/')) {
         // Check if user has a profile — if not, send to setup
         final hasProfile = profile.whenOrNull(data: (p) => p != null) ?? false;
         if (!hasProfile) return '/setup';
@@ -188,6 +190,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: AiImportScreen(),
             ),
+          ),
+          GoRoute(
+            path: '/deliveries',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DeliveriesScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const DeliveryNewScreen(),
+              ),
+            ],
           ),
         ],
       ),

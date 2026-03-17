@@ -1,8 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/checklist.dart';
@@ -24,6 +27,8 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
   ChecklistCompletion? _currentCompletion;
   final Map<String, String> _responses = {};
   final Map<String, String> _notes = {};
+  final Map<String, Uint8List> _photoBytes = {}; // itemId -> bytes for preview
+  final Map<String, bool> _photoUploading = {};
   bool _isLoading = true;
   bool _isSubmitting = false;
   _ScreenMode _mode = _ScreenMode.fill;
@@ -296,6 +301,44 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
       }
     }
     return false;
+  }
+
+  Future<void> _pickAndUploadPhoto(String itemId, ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: source, maxWidth: 1920, imageQuality: 85);
+    if (picked == null) return;
+
+    setState(() => _photoUploading[itemId] = true);
+
+    try {
+      final bytes = await picked.readAsBytes();
+      final profile = ref.read(profileProvider).value;
+      if (profile == null) throw Exception('Not authenticated');
+
+      final ext = picked.name.split('.').last.toLowerCase();
+      final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
+      final storagePath =
+          '${profile.businessId}/checklist-photos/${DateTime.now().millisecondsSinceEpoch}_${picked.name}';
+
+      await SupabaseConfig.client.storage.from('documents').uploadBinary(
+            storagePath,
+            bytes,
+            fileOptions: FileOptions(contentType: mime),
+          );
+
+      setState(() {
+        _responses[itemId] = storagePath;
+        _photoBytes[itemId] = bytes;
+        _photoUploading[itemId] = false;
+      });
+    } catch (e) {
+      setState(() => _photoUploading[itemId] = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Photo upload failed: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -605,6 +648,8 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
         );
       case ChecklistItemType.text:
         valueWidget = Text(value, style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText));
+      case ChecklistItemType.photo:
+        valueWidget = _buildPhotoThumbnail(value);
     }
 
     return Column(
@@ -623,6 +668,51 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildPhotoThumbnail(String storagePath) {
+    if (storagePath.isEmpty) {
+      return Text('No photo', style: GoogleFonts.inter(fontSize: 14, color: AppColors.lightText, fontStyle: FontStyle.italic));
+    }
+    return FutureBuilder<String>(
+      future: SupabaseConfig.client.storage.from('documents').createSignedUrl(storagePath, 3600),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Row(
+            children: [
+              Icon(Icons.broken_image_outlined, size: 20, color: AppColors.lightText),
+              const SizedBox(width: 8),
+              Text('Photo unavailable', style: GoogleFonts.inter(fontSize: 13, color: AppColors.lightText)),
+            ],
+          );
+        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            snapshot.data!,
+            height: 200,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Icon(Icons.broken_image_outlined, size: 32, color: AppColors.lightText),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -675,6 +765,71 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
           decoration: const InputDecoration(hintText: 'Enter details...'),
           onChanged: (v) => setState(() => _responses[item.id] = v),
         );
+
+      case ChecklistItemType.photo:
+        return _buildPhotoInput(item);
     }
+  }
+
+  Widget _buildPhotoInput(ChecklistTemplateItem item) {
+    final isUploading = _photoUploading[item.id] == true;
+    final hasPhoto = _responses.containsKey(item.id) && _responses[item.id]!.isNotEmpty;
+    final localBytes = _photoBytes[item.id];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasPhoto && localBytes != null) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.memory(
+              localBytes,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Photo uploaded',
+            style: GoogleFonts.inter(fontSize: 13, color: AppColors.green600, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isUploading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _pickAndUploadPhoto(item.id, ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                  label: Text('Camera', style: GoogleFonts.inter(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _pickAndUploadPhoto(item.id, ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library_outlined, size: 18),
+                  label: Text('Gallery', style: GoogleFonts.inter(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
   }
 }

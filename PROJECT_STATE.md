@@ -1,7 +1,7 @@
 # HACCP Mobile — Полное состояние проекта
 
 > Обновлено: 2026-03-17
-> Версия: HACCP 1.0 (тег `v1.0`)
+> Версия: HACCP 1.1
 
 ## Обзор
 
@@ -24,6 +24,7 @@ Flutter-приложение для управления пищевой безо
 | PDF генерация | pdf ^3.11.3 |
 | CSV генерация | csv ^6.0.0 |
 | File sharing (mobile) | share_plus ^10.1.4, path_provider ^2.1.5 |
+| Camera/Gallery | image_picker ^1.1.2 |
 | Деплой | GitHub Pages (web), iOS Simulator |
 
 ## Дизайн (обновлён Марией)
@@ -141,6 +142,8 @@ ShellRoute (AppScaffold — bottom navigation):
   /team                   → TeamScreen
   /notifications          → NotificationsScreen
   /ai-import              → AiImportScreen
+  /deliveries             → DeliveriesScreen
+    /deliveries/new       → DeliveryNewScreen
 ```
 
 **Redirect-логика:**
@@ -420,6 +423,27 @@ ShellRoute (AppScaffold — bottom navigation):
 | channels | TEXT[] | in_app и т.д. |
 | active | BOOLEAN | |
 
+#### 21. `deliveries`
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID PK | gen_random_uuid() |
+| supplier_id | UUID | FK → suppliers(id), SET NULL |
+| received_by | UUID | FK → profiles(id), SET NULL |
+| received_at | TIMESTAMPTZ | NOW() |
+| product_temperature | NUMERIC | Температура продукта |
+| notes | TEXT | Заметки |
+| business_id | UUID NOT NULL | FK → businesses(id), CASCADE |
+| created_at | TIMESTAMPTZ | NOW() |
+
+#### 22. `delivery_photos`
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID PK | gen_random_uuid() |
+| delivery_id | UUID NOT NULL | FK → deliveries(id), CASCADE |
+| photo_url | TEXT NOT NULL | Storage path |
+| file_name | TEXT | Имя файла |
+| created_at | TIMESTAMPTZ | NOW() |
+
 ### RLS-политики (краткое описание)
 
 | Таблица | SELECT | INSERT | UPDATE | DELETE |
@@ -438,6 +462,8 @@ ShellRoute (AppScaffold — bottom navigation):
 | documents | По access_level + role | Manager/Owner | Owner + uploaded_by | Owner |
 | document_access | Открытый SELECT (данные scoped) | Manager/Owner | — | Owner |
 | notifications | Свои (user_id) | — | Свои | — |
+| deliveries | Свой бизнес | Свой бизнес | Свой бизнес | Свой бизнес |
+| delivery_photos | Через deliveries (subquery) | Через deliveries (subquery) | — | Через deliveries (subquery) |
 
 ### RPC-функции (SECURITY DEFINER)
 
@@ -479,8 +505,9 @@ ShellRoute (AppScaffold — bottom navigation):
 
 1. **Auth** — Login, Register, Setup (Create Business / Join Team)
 2. **Dashboard** — Статистика (overview grid), quick actions
-3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям (owner=все, остальные=assigned+supervised), создание с supervisor role, заполнение (tick/temp/text/yes_no), sign-off workflow, activate/deactivate, delete
-4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items
+3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям (owner=все, остальные=assigned+supervised), создание с supervisor role, заполнение (tick/temp/text/yes_no/photo), sign-off workflow, activate/deactivate, delete, **SFBB категории** (Cleaning/Cooking/Chilling/Cross-Contamination/Management/Training/General) с фильтрацией чипами, **фото-тип** для визуальных проверок (камера/галерея → Supabase Storage)
+4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items, миниатюры фото
+14. **Deliveries** — Запись поставок с выбором поставщика, температурой продукта, заметками, мульти-фото (инвойс/чек). Автоматическое время и имя принявшего.
 5. **Рецепты** — Список (active/inactive sections), создание, edit, deactivate, delete, dietary badges (Vegetarian/Vegan/GF/DF)
 6. **Аллергены** — Матрица 14 аллергенов × рецепты, бейджи с эмодзи, dietary classification
 7. **Экспорт меню** — PDF/CSV с группировкой по категориям, dietary labels, опциональные аллергены (menu_export.dart)
