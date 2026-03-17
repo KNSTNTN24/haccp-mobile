@@ -346,7 +346,7 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
 
   Widget _buildFilterTabs() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Row(
         children: [
           _buildFilterChip('All', 'all'),
@@ -366,201 +366,175 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
-          ),
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppColors.primary : const Color(0xFFE5E7EB)),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? AppColors.white : AppColors.midText,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(Incident incident) {
-    final isOpen = !incident.isResolved;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isOpen ? AppColors.red50 : AppColors.green50,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        isOpen ? 'Open' : 'Resolved',
-        style: GoogleFonts.inter(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: isOpen ? AppColors.red600 : AppColors.green600,
-        ),
+        child: Text(label,
+          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : AppColors.midText)),
       ),
     );
   }
 
   Widget _buildIncidentCard(Incident incident, bool isManager) {
     final isIncident = incident.type == 'incident';
+    final isOpen = !incident.isResolved;
+    final statusColor = isOpen ? const Color(0xFFDC2626) : const Color(0xFF059669);
+    final statusLabel = isOpen ? 'Open' : 'Resolved';
+    final statusIcon = isOpen ? Icons.error_rounded : Icons.check_circle_rounded;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: !incident.isResolved && isManager ? () => _showResolveDialog(incident) : null,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: isIncident ? AppColors.red50 : AppColors.yellow50,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      isIncident ? 'Incident' : 'Complaint',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isIncident ? AppColors.red600 : AppColors.yellow600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatusBadge(incident),
-                  const Spacer(),
-                  if (isManager)
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, size: 20, color: AppColors.midText),
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'edit':
-                            _showEditDialog(incident);
-                            break;
-                          case 'delete':
-                            _deleteIncident(incident);
-                            break;
-                          case 'resolve':
-                            _showResolveDialog(incident);
-                            break;
-                          case 'reopen':
-                            _reopenIncident(incident);
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        if (!incident.isResolved)
-                          const PopupMenuItem(value: 'resolve', child: Text('Resolve')),
-                        if (incident.isResolved)
-                          const PopupMenuItem(value: 'reopen', child: Text('Reopen')),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete', style: TextStyle(color: AppColors.error)),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(incident.description, style: GoogleFonts.inter(fontSize: 14)),
-              if (incident.actionTaken != null && incident.actionTaken!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  'Action: ${incident.actionTaken}',
-                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.midText),
-                ),
-              ],
-              if (incident.followUp != null && incident.followUp!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.flag_outlined, size: 14, color: AppColors.orange600),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Follow-up: ${incident.followUp}',
-                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.orange600),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              const Divider(height: 20),
-              // Timestamps and reporter
-              Row(
-                children: [
-                  Icon(Icons.person_outline, size: 14, color: AppColors.lightText),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Reported by ${incident.reportedByName ?? 'Unknown'}',
-                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.lightText),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.lightText),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Reported: ${_formatDate(incident.date)} at ${DateFormat('h:mm a').format(incident.createdAt)}',
-                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.lightText),
-                  ),
-                ],
-              ),
-              // Resolution info
-              if (incident.isResolved) ...[
-                const SizedBox(height: 10),
+    return GestureDetector(
+      onTap: isManager ? () {
+        if (isOpen) _showResolveDialog(incident);
+        else _showEditDialog(incident);
+      } : null,
+      onLongPress: isManager ? () => _showActionsSheet(incident) : null,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8ECF0)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Status badge + type + date + chevron
+            Row(
+              children: [
+                // Status
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.green50,
-                    borderRadius: BorderRadius.circular(8),
+                    color: statusColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.check_circle, size: 16, color: AppColors.green600),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Resolved by ${incident.resolvedByName ?? 'Unknown'}${incident.resolvedAt != null ? ' on ${_formatDateTime(incident.resolvedAt!)}' : ''}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.green600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (incident.resolvedNotes != null && incident.resolvedNotes!.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          incident.resolvedNotes!,
-                          style: GoogleFonts.inter(fontSize: 13, color: AppColors.darkText),
-                        ),
-                      ],
-                    ],
-                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(statusIcon, size: 15, color: statusColor),
+                    const SizedBox(width: 5),
+                    Text(statusLabel, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: statusColor)),
+                  ]),
                 ),
+                const SizedBox(width: 10),
+                // Type pill
+                Text(
+                  isIncident ? 'Incident' : 'Complaint',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.midText),
+                ),
+                const Spacer(),
+                Text(_formatDate(incident.date), style: GoogleFonts.inter(fontSize: 14, color: AppColors.lightText)),
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.lightText),
               ],
+            ),
+            // Row 2: Description
+            const SizedBox(height: 14),
+            Text(incident.description,
+              style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E), height: 1.3),
+              maxLines: 3, overflow: TextOverflow.ellipsis,
+            ),
+            // Action taken
+            if (incident.actionTaken != null && incident.actionTaken!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text('Action: ${incident.actionTaken!}',
+                style: GoogleFonts.inter(fontSize: 15, color: AppColors.midText, height: 1.4),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
-          ),
+            // Follow-up
+            if (incident.followUp != null && incident.followUp!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Icon(Icons.flag_rounded, size: 18, color: const Color(0xFFEA580C)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(incident.followUp!,
+                    style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: const Color(0xFFEA580C), height: 1.3),
+                    maxLines: 2, overflow: TextOverflow.ellipsis)),
+                ]),
+              ),
+            ],
+            // Resolution block
+            if (incident.isResolved) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Icon(Icons.verified_rounded, size: 18, color: const Color(0xFF059669)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(
+                      'Resolved by ${incident.resolvedByName ?? 'Unknown'}',
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF059669)))),
+                  ]),
+                  if (incident.resolvedNotes != null && incident.resolvedNotes!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(incident.resolvedNotes!, style: GoogleFonts.inter(fontSize: 15, color: AppColors.darkText, height: 1.3)),
+                  ],
+                ]),
+              ),
+            ],
+            // Footer: reporter
+            const SizedBox(height: 12),
+            Text('Reported by ${incident.reportedByName ?? 'Unknown'}',
+              style: GoogleFonts.inter(fontSize: 14, color: AppColors.lightText)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showActionsSheet(Incident incident) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            _actionItem(Icons.edit_rounded, 'Edit', AppColors.midText, () { Navigator.pop(ctx); _showEditDialog(incident); }),
+            if (!incident.isResolved)
+              _actionItem(Icons.check_circle_rounded, 'Resolve', const Color(0xFF059669), () { Navigator.pop(ctx); _showResolveDialog(incident); }),
+            if (incident.isResolved)
+              _actionItem(Icons.refresh_rounded, 'Reopen', const Color(0xFF2563EB), () { Navigator.pop(ctx); _reopenIncident(incident); }),
+            _actionItem(Icons.delete_rounded, 'Delete', const Color(0xFFDC2626), () { Navigator.pop(ctx); _deleteIncident(incident); }),
+            const SizedBox(height: 8),
+          ]),
+        )),
+      ),
+    );
+  }
+
+  Widget _actionItem(IconData icon, String label, Color color, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(width: 14),
+            Text(label, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, color: color == AppColors.midText ? AppColors.darkText : color)),
+          ]),
         ),
       ),
     );
@@ -611,7 +585,7 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       return _buildIncidentCard(filtered[index], isManager);
@@ -623,10 +597,21 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: AppColors.gold,
-        child: const Icon(Icons.add, color: AppColors.white),
+      floatingActionButton: Container(
+        width: 60, height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF10B981), Color(0xFF059669)]),
+          boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(30),
+            onTap: _showAddDialog,
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
+        ),
       ),
     );
   }

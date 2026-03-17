@@ -180,12 +180,117 @@ class RecipesScreen extends ConsumerWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(30),
-                  onTap: () => context.go('/recipes/new'),
+                  onTap: () => _showAddSheet(context),
                   child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
                 ),
               ),
             )
           : null,
+    );
+  }
+}
+
+void _showAddSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 24),
+                Text('Add Recipe', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+                const SizedBox(height: 20),
+                // Create manually
+                _AddOption(
+                  icon: Icons.edit_rounded,
+                  color: AppColors.primary,
+                  title: 'Create Manually',
+                  subtitle: 'Add ingredients, method, allergens',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.go('/recipes/new');
+                  },
+                ),
+                const SizedBox(height: 10),
+                // AI import
+                _AddOption(
+                  icon: Icons.auto_awesome_rounded,
+                  color: const Color(0xFF7C3AED),
+                  title: 'Import with AI',
+                  subtitle: 'Extract from video or text',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.go('/ai-import');
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _AddOption extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _AddOption({required this.icon, required this.color, required this.title, required this.subtitle, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, size: 24, color: color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.darkText)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: GoogleFonts.inter(fontSize: 13, color: AppColors.midText)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 22, color: color.withValues(alpha: 0.5)),
+          ],
+        ),
+      ),
     );
   }
 }

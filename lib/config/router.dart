@@ -15,6 +15,7 @@ import '../screens/recipes/recipe_new_screen.dart';
 import '../screens/recipes/recipe_edit_screen.dart';
 import '../screens/checklists/checklist_manage_screen.dart';
 import '../screens/menu/allergen_matrix_screen.dart';
+import '../screens/menu/menu_screen.dart';
 import '../screens/diary/diary_screen.dart';
 import '../screens/incidents/incidents_screen.dart';
 import '../screens/suppliers/suppliers_screen.dart';
@@ -26,6 +27,7 @@ import '../screens/documents/document_detail_screen.dart';
 import '../screens/ai_import/ai_import_screen.dart';
 import '../screens/deliveries/deliveries_screen.dart';
 import '../screens/deliveries/delivery_new_screen.dart';
+import '../screens/profile/profile_screen.dart';
 import '../widgets/app_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -121,15 +123,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: '/recipes',
+            path: '/menu',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: RecipesScreen(),
+              child: MenuScreen(),
             ),
           ),
           GoRoute(
-            path: '/menu',
+            path: '/profile',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: AllergenMatrixScreen(),
+              child: ProfileScreen(),
             ),
           ),
           GoRoute(

@@ -17,23 +17,6 @@ class DeliveriesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
-          onPressed: () => context.go('/more'),
-        ),
-        title: Text(
-          'Deliveries',
-          style: GoogleFonts.inter(
-            color: AppColors.darkText,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
       floatingActionButton: Container(
         width: 60,
         height: 60,
@@ -165,85 +148,68 @@ class _DeliveryCard extends StatelessWidget {
     final dateStr = DateFormat('dd MMM yyyy, HH:mm').format(delivery.receivedAt);
     final photoCount = delivery.photos.length;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                borderRadius: BorderRadius.circular(14),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8ECF0)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title + chevron
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  delivery.supplierName ?? 'Unknown Supplier',
+                  style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E)),
+                ),
               ),
-              child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF059669), size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    delivery.supplierName ?? 'Unknown Supplier',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.darkText),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    dateStr,
-                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.midText),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      if (delivery.receivedByName != null)
-                        _badge(Icons.person_outline, delivery.receivedByName!, AppColors.primary),
-                      if (delivery.productTemperature != null)
-                        _badge(Icons.thermostat_outlined, '${delivery.productTemperature}°C', const Color(0xFF0891B2)),
-                      if (photoCount > 0)
-                        _badge(Icons.photo_camera_outlined, '$photoCount photo${photoCount > 1 ? 's' : ''}', const Color(0xFF7C3AED)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.lightText),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.lightText),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Date
+          Text(dateStr, style: GoogleFonts.inter(fontSize: 13, color: AppColors.midText)),
+          const SizedBox(height: 12),
+          // Badges
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (delivery.receivedByName != null)
+                _badge(Icons.person_rounded, delivery.receivedByName!, AppColors.primary),
+              if (delivery.productTemperature != null)
+                _badge(Icons.thermostat_rounded, '${delivery.productTemperature}°C', const Color(0xFF0891B2)),
+              if (photoCount > 0)
+                _badge(Icons.camera_alt_rounded, '$photoCount photo${photoCount > 1 ? 's' : ''}', const Color(0xFF7C3AED)),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _badge(IconData icon, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-          ),
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
