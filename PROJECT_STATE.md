@@ -1,6 +1,7 @@
 # HACCP Mobile — Полное состояние проекта
 
-> Обновлено: 2026-03-16
+> Обновлено: 2026-03-17
+> Версия: HACCP 1.0 (тег `v1.0`)
 
 ## Обзор
 
@@ -49,7 +50,7 @@ lib/
 │   ├── profile.dart                   # UserRole enum + Profile (isManager, canManageRecipes)
 │   ├── business.dart                  # Business
 │   ├── checklist.dart                 # ChecklistTemplate, Item, Completion, Response
-│   ├── recipe.dart                    # Recipe, Ingredient, RecipeIngredient
+│   ├── recipe.dart                    # Recipe (+dietary getters: isVegetarian/isVegan/isGlutenFree/isDairyFree/dietaryLabels), Ingredient, RecipeIngredient
 │   ├── menu_item.dart                 # MenuItem
 │   ├── incident.dart                  # Incident (status, resolvedBy, resolvedAt, resolvedNotes)
 │   ├── supplier.dart                  # Supplier
@@ -94,15 +95,21 @@ lib/
 │   ├── notifications/
 │   │   └── notifications_screen.dart  # Уведомления
 │   └── ai_import/
-│       └── ai_import_screen.dart      # Заглушка "Coming Soon"
+│       └── ai_import_screen.dart      # AI Recipe Import (text/PDF → Claude API → structured recipe)
 ├── utils/
-│   ├── diary_export.dart              # PDF/CSV генерация + кроссплатформенный download/share
+│   ├── diary_export.dart              # PDF/CSV генерация дневника + кроссплатформенный download/share
+│   ├── menu_export.dart               # PDF/CSV экспорт меню с dietary labels и аллергенами
 │   ├── file_saver_stub.dart           # Stub для conditional import
 │   ├── file_saver_web.dart            # Web: dart:html Blob + AnchorElement download
 │   └── file_saver_mobile.dart         # Mobile: path_provider + share_plus
 └── widgets/
     ├── allergen_badge.dart            # Бейдж аллергена с эмодзи
     └── app_scaffold.dart              # Bottom nav + shell
+
+supabase/
+└── functions/
+    └── import-recipe/
+        └── index.ts                   # Edge Function: text/PDF → Claude API → structured recipe JSON
 ```
 
 ---
@@ -133,6 +140,7 @@ ShellRoute (AppScaffold — bottom navigation):
     /documents/:id        → DocumentDetailScreen
   /team                   → TeamScreen
   /notifications          → NotificationsScreen
+  /ai-import              → AiImportScreen
 ```
 
 **Redirect-логика:**
@@ -473,19 +481,21 @@ ShellRoute (AppScaffold — bottom navigation):
 2. **Dashboard** — Статистика (overview grid), quick actions
 3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям (owner=все, остальные=assigned+supervised), создание с supervisor role, заполнение (tick/temp/text/yes_no), sign-off workflow, activate/deactivate, delete
 4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items
-5. **Рецепты** — Список (active/inactive sections), создание, edit, deactivate, delete
-6. **Аллергены** — Матрица 14 аллергенов × рецепты, бейджи с эмодзи
-7. **Дневник (Daily Diary)** — Агрегатор событий за день: чеклисты + инциденты с карточками, навигация по датам, экспорт отчёта (PDF/CSV) за период с выбором включаемых секций
-8. **Инциденты** — Список с фильтрами (All/Open/Resolved), создание, edit, delete, resolve/reopen, follow-up, timestamps, resolution info
-9. **Поставщики** — Список, add/edit/delete (manager only)
-10. **Команда** — Список участников, приглашение по токену
-11. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное
-12. **Документы** — Загрузка файлов (PDF, JPG, DOCX, XLSX), категории, поиск, управление доступом (all/managers/owner/custom), срок действия
+5. **Рецепты** — Список (active/inactive sections), создание, edit, deactivate, delete, dietary badges (Vegetarian/Vegan/GF/DF)
+6. **Аллергены** — Матрица 14 аллергенов × рецепты, бейджи с эмодзи, dietary classification
+7. **Экспорт меню** — PDF/CSV с группировкой по категориям, dietary labels, опциональные аллергены (menu_export.dart)
+8. **Дневник (Daily Diary)** — Агрегатор событий за день: чеклисты + инциденты с карточками, навигация по датам, экспорт отчёта (PDF/CSV) за период с выбором включаемых секций
+9. **Инциденты** — Список с фильтрами (All/Open/Resolved), создание, edit, delete, resolve/reopen, follow-up, timestamps, resolution info
+10. **Поставщики** — Список, add/edit/delete (manager only)
+11. **Команда** — Список участников, приглашение по токену
+12. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное
+13. **Документы** — Загрузка файлов (PDF, JPG, DOCX, XLSX), категории, поиск, управление доступом (all/managers/owner/custom), срок действия
 
 ### 🟡 Частично
 
-- **Меню** — матрица аллергенов есть, но нет управления menu_items
+- **Меню** — матрица аллергенов + экспорт есть, но нет управления menu_items
 - **Уведомления** — отображение есть, но нет автоматической генерации
+- **AI Import рецептов** — ✅ Работает! Три режима ввода: текст, PDF, фото. Edge Function задеплоена с `--no-verify-jwt`. Опциональный video URL сохраняется.
 
 ### ❌ Не реализовано
 
@@ -496,13 +506,13 @@ ShellRoute (AppScaffold — bottom navigation):
 - [ ] **Staff Training Records** — обучение сотрудников (таблица есть в БД)
 - [ ] **4-Weekly Review** — ревью за 4 недели (таблица есть в БД)
 - [x] **PDF/CSV экспорт дневника** — реализовано в diary_export.dart
+- [x] **PDF/CSV экспорт меню** — реализовано в menu_export.dart
 - [ ] **PDF экспорт чеклистов** — отдельный экспорт чеклистов
 - [ ] **Quick Allergen Lookup** — поиск аллергенов по блюду
 - [ ] **Редактирование шаблона чеклиста** — edit существующего (кнопка есть, показывает "Coming soon")
 - [ ] **Logout** — кнопка выхода из аккаунта
 
 #### Низкий приоритет
-- [ ] **AI Import рецептов** — загрузка видео → транскрипция → рецепт
 - [ ] **Push уведомления** — FCM, email, авто-напоминания
 - [ ] **Notification Rules** — настройка правил уведомлений
 - [ ] **Фото рецептов** — загрузка в Supabase Storage
@@ -523,6 +533,9 @@ ShellRoute (AppScaffold — bottom navigation):
 - **RPC-функции** (`setup_business`, `join_with_invite`) обходят RLS
 - **RLS-хелперы** (`get_my_business_id()`, `get_my_role()`) — SECURITY DEFINER
 - **Storage bucket** `documents` — private, max 10 MB, PDF/JPG/PNG/DOCX/XLSX
+- **Edge Functions** — `import-recipe` (Deno.serve, Claude API для анализа рецептов)
+- **Anthropic API key** — сохранён как Supabase secret `ANTHROPIC_API_KEY`
+- **Supabase project ref:** `rszrggreuarvodcqeqrj`
 - **RLS gotcha:** `.eq()` ДОЛЖЕН быть ДО `.order()` в цепочке Supabase запросов
 - **RLS gotcha:** Circular policies (A → B → A) вызывают infinite recursion. Решение: сделать одну из них открытой (`USING (true)`)
 - **PostgreSQL:** `CREATE POLICY IF NOT EXISTS` не работает. Используй `DROP POLICY IF EXISTS` + `CREATE POLICY`
@@ -540,13 +553,19 @@ ShellRoute (AppScaffold — bottom navigation):
 - **Diary screen** — больше НЕ использует diary_entries, opening/closing checks убраны; агрегирует checklist_completions + incidents за день
 - **PDF/CSV export** — conditional import (dart:html для web, share_plus для mobile); файлы file_saver_*.dart
 - **Dashboard** — Today's Tasks плашка убрана (opening/closing checks перенесены в чеклисты)
+- **Dietary labels** — Автоматическая классификация рецептов (Vegetarian, Vegan, GF, DF) на основе EU 14 аллергенов. Цветные бейджи на карточках и в detail view.
+- **Menu export** — PDF/CSV с группировкой по категории, dietary labels, опциональные аллергены. Экспорт через FAB на allergen_matrix_screen.
+- **AI Import** — Три режима: Text / PDF / Photo → Supabase Edge Function → Claude API (claude-sonnet-4-20250514) → structured recipe JSON. Опциональный video URL сохраняется в source_video_url. Фото (JPG/PNG/WebP до 10 MB) отправляется как `type: "image"`, PDF как `type: "document"`.
+- **Edge Functions** — используем `Deno.serve()` (НЕ старый `import { serve }`), `anthropic-version: "2023-06-01"`, `anthropic-beta: "pdfs-2024-09-25"`. Деплой с `--no-verify-jwt`.
 
 ### Деплой
 - **GitHub Pages** — gh-pages branch содержит ТОЛЬКО `build/web/` contents
-- **Base href** — `flutter build web --release --base-href "/haccp-mobile/"`
-- **Деплой:** cp build/web → /tmp → checkout gh-pages → rm all → cp back → commit → push → checkout main
+- **Base href** — `flutter build web --release --base-href "/haccp-mobile/"` (ОБЯЗАТЕЛЬНО!)
+- **Деплой web:** Использовать ОТДЕЛЬНЫЙ клон для gh-pages (НЕ checkout в том же рабочем каталоге — иначе untracked файлы Flutter попадут в gh-pages)
+- **Деплой Edge Functions:** `supabase functions deploy import-recipe --project-ref rszrggreuarvodcqeqrj --no-verify-jwt`
 - **iOS Simulator** — `flutter run` запускает на подключённом симуляторе
 - **Apple Developer Account** — ожидает регистрации для TestFlight/App Store
+- **Flutter service worker** — агрессивно кеширует; для проверки обновлений нужен Clear site data в DevTools
 
 ---
 
@@ -560,16 +579,17 @@ flutter run
 # Сборка для веба
 flutter build web --release --base-href "/haccp-mobile/"
 
-# Деплой на GitHub Pages
+# Деплой на GitHub Pages (через отдельный клон — ВАЖНО!)
+rm -rf /tmp/haccp-web-build /tmp/haccp-gh-pages
 cp -r build/web /tmp/haccp-web-build
-git checkout gh-pages
-git rm -rf . --quiet 2>/dev/null
+git clone --branch gh-pages --single-branch https://github.com/KNSTNTN24/haccp-mobile.git /tmp/haccp-gh-pages
+cd /tmp/haccp-gh-pages
+find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
 cp -r /tmp/haccp-web-build/* .
-git add -A
-git commit -m "Deploy: описание"
-git push origin gh-pages
-git checkout main
-rm -rf /tmp/haccp-web-build
+git add -A && git commit -m "Deploy: описание" && git push origin gh-pages
+
+# Деплой Edge Functions
+supabase functions deploy import-recipe --project-ref rszrggreuarvodcqeqrj
 
 # Подтянуть изменения
 git fetch origin && git pull origin main

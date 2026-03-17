@@ -32,6 +32,10 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
   String? _pdfFileName;
   Uint8List? _pdfBytes;
 
+  // Photo input
+  String? _photoFileName;
+  Uint8List? _photoBytes;
+
   // Optional video URL (just saved with recipe, not analyzed)
   final _videoUrlController = TextEditingController();
 
@@ -41,7 +45,7 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -74,15 +78,41 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
     }
   }
 
-  Future<void> _analyze() async {
-    final isTextMode = _tabController.index == 0;
+  Future<void> _pickPhoto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+      withData: true,
+    );
 
-    if (isTextMode && _textController.text.trim().isEmpty) {
+    if (result != null && result.files.single.bytes != null) {
+      final file = result.files.single;
+      if (file.size > 10 * 1024 * 1024) {
+        setState(() => _error = 'Photo must be under 10 MB');
+        return;
+      }
+      setState(() {
+        _photoFileName = file.name;
+        _photoBytes = file.bytes;
+        _error = null;
+        _parsedRecipe = null;
+      });
+    }
+  }
+
+  Future<void> _analyze() async {
+    final tabIndex = _tabController.index;
+
+    if (tabIndex == 0 && _textController.text.trim().isEmpty) {
       setState(() => _error = 'Please enter recipe text');
       return;
     }
-    if (!isTextMode && _pdfBytes == null) {
+    if (tabIndex == 1 && _pdfBytes == null) {
       setState(() => _error = 'Please select a PDF file');
+      return;
+    }
+    if (tabIndex == 2 && _photoBytes == null) {
+      setState(() => _error = 'Please select a photo');
       return;
     }
 
@@ -95,12 +125,24 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
     try {
       final Map<String, dynamic> body;
 
-      if (isTextMode) {
+      if (tabIndex == 0) {
         body = {'text': _textController.text.trim()};
-      } else {
+      } else if (tabIndex == 1) {
         body = {
           'pdf_base64': base64Encode(_pdfBytes!),
           'filename': _pdfFileName ?? 'recipe.pdf',
+        };
+      } else {
+        final ext = (_photoFileName ?? 'photo.jpg').split('.').last.toLowerCase();
+        final mimeType = ext == 'png'
+            ? 'image/png'
+            : ext == 'webp'
+                ? 'image/webp'
+                : 'image/jpeg';
+        body = {
+          'image_base64': base64Encode(_photoBytes!),
+          'image_mime': mimeType,
+          'filename': _photoFileName ?? 'recipe.jpg',
         };
       }
 
@@ -256,7 +298,7 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
             ),
             Center(
               child: Text(
-                'Paste recipe text or upload a PDF',
+                'Paste text, upload PDF, or snap a photo',
                 style: GoogleFonts.inter(
                     fontSize: 14, color: Colors.grey.shade600),
                 textAlign: TextAlign.center,
@@ -285,6 +327,7 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
                 tabs: const [
                   Tab(text: 'Text'),
                   Tab(text: 'PDF'),
+                  Tab(text: 'Photo'),
                 ],
                 onTap: (_) => setState(() {
                   _error = null;
@@ -300,8 +343,10 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
               builder: (context, _) {
                 if (_tabController.index == 0) {
                   return _buildTextInput();
-                } else {
+                } else if (_tabController.index == 1) {
                   return _buildPdfInput();
+                } else {
+                  return _buildPhotoInput();
                 }
               },
             ),
@@ -536,6 +581,79 @@ class _AiImportScreenState extends ConsumerState<AiImportScreen>
                       fontSize: 12, color: Colors.grey.shade500),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoInput() {
+    return GestureDetector(
+      onTap: _isAnalyzing ? null : _pickPhoto,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: _photoBytes != null
+              ? AppColors.primary.withValues(alpha: 0.05)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _photoBytes != null
+                ? AppColors.primary.withValues(alpha: 0.3)
+                : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            if (_photoBytes != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.memory(
+                  _photoBytes!,
+                  height: 160,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _photoFileName ?? 'photo.jpg',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkText,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${(_photoBytes!.length / 1024 / 1024).toStringAsFixed(1)} MB — tap to change',
+                  style: GoogleFonts.inter(
+                      fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ),
+            ] else ...[
+              Icon(Icons.camera_alt_rounded,
+                  size: 40, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                'Tap to select photo',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'JPG, PNG, WebP — max 10 MB',
+                  style: GoogleFonts.inter(
+                      fontSize: 12, color: Colors.grey.shade400),
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -45,11 +45,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { text, pdf_base64, filename } = body;
+    const { text, pdf_base64, image_base64, image_mime, filename } = body;
 
-    if (!text && !pdf_base64) {
+    if (!text && !pdf_base64 && !image_base64) {
       return new Response(
-        JSON.stringify({ error: "Please provide recipe text or a PDF file." }),
+        JSON.stringify({ error: "Please provide recipe text, a PDF, or a photo." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -84,7 +84,21 @@ Deno.serve(async (req: Request) => {
     // Build content array
     const content: any[] = [];
 
-    if (pdf_base64) {
+    if (image_base64) {
+      console.log(`Analyzing image: ${filename || "recipe.jpg"} (${image_mime || "image/jpeg"})`);
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: image_mime || "image/jpeg",
+          data: image_base64,
+        },
+      });
+      content.push({
+        type: "text",
+        text: RECIPE_PROMPT,
+      });
+    } else if (pdf_base64) {
       console.log(`Analyzing PDF: ${filename || "recipe.pdf"}`);
       content.push({
         type: "document",
@@ -113,7 +127,8 @@ Deno.serve(async (req: Request) => {
         headers: {
           "Content-Type": "application/json",
           "x-api-key": anthropicKey,
-          "anthropic-version": "2025-01-01",
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "pdfs-2024-09-25",
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
