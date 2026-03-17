@@ -24,10 +24,6 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            _Header(profile: profile),
-            const SizedBox(height: 24),
-
             // Body
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -45,6 +41,12 @@ class DashboardScreen extends ConsumerWidget {
                 data: (stats) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Daily Diary
+                    GestureDetector(
+                      onTap: () => context.go('/diary'),
+                      child: _DailyProgress(stats: stats),
+                    ),
+                    const SizedBox(height: 28),
                     _SectionLabel('Overview'),
                     const SizedBox(height: 14),
                     _StatsGrid(stats: stats),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
+import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 
 class AppScaffold extends ConsumerWidget {
@@ -54,7 +55,12 @@ class AppScaffold extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final currentIdx = _currentIndex(location);
     final profile = ref.watch(profileProvider).value;
-    final title = _titles[location] ?? 'HACCP';
+    final firstName = profile?.fullName?.split(' ').first ?? '';
+    final title = location == '/dashboard' && firstName.isNotEmpty
+        ? 'Hi, $firstName'
+        : _titles[location] ?? 'HACCP';
+    final name = profile?.fullName ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Scaffold(
       appBar: AppBar(
@@ -66,11 +72,21 @@ class AppScaffold extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0.5,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, size: 24, color: AppColors.midText),
-            onPressed: () => context.go('/notifications'),
+          GestureDetector(
+            onTap: () => _showProfileSheet(context, ref, profile),
+            child: Container(
+              width: 36, height: 36,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryPale,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(initial,
+                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary)),
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
         ],
       ),
       body: child,
@@ -113,6 +129,67 @@ class AppScaffold extends ConsumerWidget {
     );
   }
 
+  void _showProfileSheet(BuildContext context, WidgetRef ref, Profile? profile) {
+    final name = profile?.fullName ?? 'User';
+    final role = profile?.role.displayName ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final isManager = profile?.role == UserRole.owner || profile?.role == UserRole.manager;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 24),
+                // Profile header
+                Container(
+                  width: 56, height: 56,
+                  decoration: const BoxDecoration(color: AppColors.primaryPale, shape: BoxShape.circle),
+                  child: Center(child: Text(initial, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.primary))),
+                ),
+                const SizedBox(height: 12),
+                Text(name, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+                const SizedBox(height: 2),
+                Text(role, style: GoogleFonts.inter(fontSize: 14, color: AppColors.midText)),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      _MoreItem(icon: Icons.notifications_rounded, label: 'Notifications', color: AppColors.yellow600,
+                        onTap: () { Navigator.pop(context); context.go('/notifications'); }),
+                      if (isManager)
+                        _MoreItem(icon: Icons.people_rounded, label: 'Team', color: AppColors.purple600,
+                          onTap: () { Navigator.pop(context); context.go('/team'); }),
+                      const Divider(height: 24),
+                      _MoreItem(icon: Icons.logout_rounded, label: 'Sign Out', color: AppColors.midText,
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await ref.read(authNotifierProvider.notifier).signOut();
+                          if (context.mounted) context.go('/login');
+                        }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showMoreMenu(BuildContext context, WidgetRef ref, String role) {
     final isManager = role == 'owner' || role == 'manager';
     showModalBottomSheet(
@@ -141,25 +218,13 @@ class AppScaffold extends ConsumerWidget {
                         onTap: () { Navigator.pop(context); context.go('/incidents'); }),
                       _MoreItem(icon: Icons.inventory_2_rounded, label: 'Deliveries', color: const Color(0xFF0891B2),
                         onTap: () { Navigator.pop(context); context.go('/deliveries'); }),
-                      if (isManager) ...[
+                      if (isManager)
                         _MoreItem(icon: Icons.local_shipping_rounded, label: 'Suppliers', color: AppColors.orange600,
                           onTap: () { Navigator.pop(context); context.go('/suppliers'); }),
-                        _MoreItem(icon: Icons.people_rounded, label: 'Team', color: AppColors.purple600,
-                          onTap: () { Navigator.pop(context); context.go('/team'); }),
-                      ],
                       _MoreItem(icon: Icons.folder_rounded, label: 'Documents', color: AppColors.blue600,
                         onTap: () { Navigator.pop(context); context.go('/documents'); }),
                       _MoreItem(icon: Icons.auto_awesome_rounded, label: 'AI Recipe Import', color: AppColors.primary,
                         onTap: () { Navigator.pop(context); context.go('/ai-import'); }),
-                      _MoreItem(icon: Icons.notifications_rounded, label: 'Notifications', color: AppColors.yellow600,
-                        onTap: () { Navigator.pop(context); context.go('/notifications'); }),
-                      const Divider(height: 24),
-                      _MoreItem(icon: Icons.logout_rounded, label: 'Sign Out', color: AppColors.midText,
-                        onTap: () async {
-                          Navigator.pop(context);
-                          await ref.read(authNotifierProvider.notifier).signOut();
-                          if (context.mounted) context.go('/login');
-                        }),
                     ],
                   ),
                 ),
