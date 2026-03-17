@@ -109899,7 +109899,7 @@ s=b.c
 r=s!=="/login"
 q=!r||s==="/register"||s==="/setup"
 if(!n&&!q)return"/login"
-if(n)s=!r||s==="/register"
+if(n)s=!r||s==="/register"||s==="/"
 else s=!1
 if(s){p=A.afY(this.b,new A.b0e(),t.wS,o)
 if(!(p==null?!1:p))return"/setup"
