@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+// Using native iOS SF Pro fonts
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -57,25 +57,31 @@ class AppScaffold extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title,
-          style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.darkText),
+          style: TextStyle(fontFamily: '.SF Pro Text',fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.darkText),
         ),
         centerTitle: false,
         backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0.5,
+        toolbarHeight: 56,
         actions: [
           GestureDetector(
             onTap: () => context.go('/profile'),
             child: Container(
-              width: 36, height: 36,
-              margin: const EdgeInsets.only(right: 16),
-              decoration: const BoxDecoration(
-                color: AppColors.primaryPale,
+              width: 40, height: 40,
+              margin: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                ),
                 shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
               ),
               child: Center(
                 child: Text(initial,
-                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                  style: TextStyle(fontFamily: '.SF Pro Text',fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
               ),
             ),
           ),
@@ -85,14 +91,15 @@ class AppScaffold extends ConsumerWidget {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.divider.withValues(alpha: 0.5))),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, -4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -4)),
           ],
         ),
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
             child: Row(
               children: _tabs.asMap().entries.map((entry) {
                 final i = entry.key;
@@ -125,31 +132,27 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            padding: EdgeInsets.symmetric(horizontal: isActive ? 20 : 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: isActive ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(icon, size: 24, color: isActive ? AppColors.primary : const Color(0xFFADB5BD)),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.symmetric(horizontal: isActive ? 16 : 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(height: 4),
-          Text(label, style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: isActive ? AppColors.primary : const Color(0xFFADB5BD),
-          )),
-        ],
-      ),
+          child: Icon(icon, size: 24,
+            color: isActive ? AppColors.primary : const Color(0xFF94A3B8)),
+        ),
+        const SizedBox(height: 3),
+        Text(label, style: TextStyle(fontFamily: '.SF Pro Text',
+          fontSize: 11,
+          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+          color: isActive ? AppColors.primary : const Color(0xFF94A3B8),
+        )),
+      ],
     );
   }
 }

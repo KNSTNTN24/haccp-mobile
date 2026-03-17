@@ -1,39 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/cupertino.dart';
 
 class AppColors {
-  // Core palette — fresh green + clean white
-  static const primary = Color(0xFF0B8457);      // deep emerald
-  static const primaryLight = Color(0xFF10B981);  // vibrant green
-  static const primaryPale = Color(0xFFECFDF5);   // green tint bg
+  // Core palette — rich emerald + warm neutrals
+  static const primary = Color(0xFF0A7B50);        // deep emerald (slightly darker)
+  static const primaryLight = Color(0xFF10B981);    // vibrant green
+  static const primaryPale = Color(0xFFD1FAE5);     // green tint bg (more visible)
   static const surface = Color(0xFFFFFFFF);
-  static const background = Color(0xFFF7FAF8);    // barely-green white
-  static const darkText = Color(0xFF111827);
-  static const midText = Color(0xFF6B7280);
-  static const lightText = Color(0xFF9CA3AF);
-  static const divider = Color(0xFFE5E7EB);
+  static const background = Color(0xFFF5F5F7);      // cool neutral (Apple-like)
+  static const darkText = Color(0xFF0F172A);         // slate-900 (deeper black)
+  static const midText = Color(0xFF475569);          // slate-600 (richer gray)
+  static const lightText = Color(0xFF94A3B8);        // slate-400
+  static const divider = Color(0xFFE2E8F0);          // slate-200
   static const error = Color(0xFFDC2626);
   static const warning = Color(0xFFF59E0B);
 
-  // Legacy aliases for other screens
-  static const darkBlue = Color(0xFF111827);
+  // Legacy aliases
+  static const darkBlue = Color(0xFF0F172A);
   static const gold = Color(0xFF10B981);
-  static const cream = Color(0xFFF7FAF8);
+  static const cream = Color(0xFFF5F5F7);
   static const white = Color(0xFFFFFFFF);
   static const success = Color(0xFF10B981);
 
-  // Stat card accent colors
+  // Accent colors
   static const blue50 = Color(0xFFEFF6FF);
   static const blue600 = Color(0xFF2563EB);
-  static const green50 = Color(0xFFECFDF5);
+  static const green50 = Color(0xFFD1FAE5);
   static const green600 = Color(0xFF10B981);
   static const orange50 = Color(0xFFFFF7ED);
   static const orange600 = Color(0xFFEA580C);
-  static const red50 = Color(0xFFFEF2F2);
+  static const red50 = Color(0xFFFEE2E2);
   static const red600 = Color(0xFFDC2626);
-  static const purple50 = Color(0xFFFAF5FF);
+  static const purple50 = Color(0xFFF3E8FF);
   static const purple600 = Color(0xFF7C3AED);
-  static const yellow50 = Color(0xFFFEFCE8);
+  static const yellow50 = Color(0xFFFEF9C3);
   static const yellow600 = Color(0xFFF59E0B);
 }
 
@@ -52,19 +52,22 @@ class AppTheme {
         onSecondary: Colors.white,
         onSurface: AppColors.darkText,
       ),
-      textTheme: GoogleFonts.interTextTheme().apply(
+      fontFamily: '.SF Pro Text',
+      textTheme: const TextTheme().apply(
         bodyColor: AppColors.darkText,
         displayColor: AppColors.darkText,
+        fontFamily: '.SF Pro Text',
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.darkText,
         elevation: 0,
         scrolledUnderElevation: 0.5,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontFamily: '.SF Pro Display',
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
           color: AppColors.darkText,
         ),
       ),
@@ -76,7 +79,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
+            fontFamily: '.SF Pro Text',
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -102,8 +106,8 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.error),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: GoogleFonts.inter(color: AppColors.lightText),
-        labelStyle: GoogleFonts.inter(color: AppColors.darkText),
+        hintStyle: const TextStyle(fontFamily: '.SF Pro Text', color: AppColors.lightText),
+        labelStyle: const TextStyle(fontFamily: '.SF Pro Text', color: AppColors.midText),
       ),
       cardTheme: CardThemeData(
         elevation: 0,

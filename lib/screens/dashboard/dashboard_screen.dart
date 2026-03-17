@@ -24,6 +24,7 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
             // Body
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
