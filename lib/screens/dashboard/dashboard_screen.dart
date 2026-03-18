@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:figma_squircle/figma_squircle.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -151,11 +152,13 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      text,
-      style: GoogleFonts.inter(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: AppColors.darkText,
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontFamily: '.SF Pro Text',
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.lightText,
+        letterSpacing: 1.2,
       ),
     );
   }
@@ -181,13 +184,15 @@ class _DailyProgress extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF059669), Color(0xFF10B981)],
+          colors: [Color(0xFF065F46), Color(0xFF047857)],
         ),
-        borderRadius: BorderRadius.circular(20),
+        shape: SmoothRectangleBorder(
+          borderRadius: SmoothBorderRadius(cornerRadius: 22, cornerSmoothing: 0.6),
+        ),
       ),
       child: Column(
         children: [
@@ -352,17 +357,17 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _Stat('Checklists', stats.totalChecklists, Icons.checklist_rounded,
-          const Color(0xFF2563EB), const Color(0xFFEFF6FF), '/checklists'),
+          const Color(0xFF047857), const Color(0xFFECFDF5), '/checklists'),
       _Stat('Completed', stats.todayCompletions, Icons.task_alt_rounded,
-          const Color(0xFF059669), const Color(0xFFECFDF5), '/diary'),
+          const Color(0xFF047857), const Color(0xFFECFDF5), '/diary'),
       _Stat('Recipes', stats.totalRecipes, Icons.restaurant_rounded,
-          const Color(0xFFEA580C), const Color(0xFFFFF7ED), '/recipes'),
+          const Color(0xFF047857), const Color(0xFFECFDF5), '/recipes'),
       _Stat('Incidents', stats.openIncidents, Icons.warning_rounded,
-          const Color(0xFFDC2626), const Color(0xFFFEF2F2), '/incidents'),
+          const Color(0xFFC2410C), const Color(0xFFFFF1E6), '/incidents'),
       _Stat('Team', stats.teamMembers, Icons.people_rounded,
-          const Color(0xFF7C3AED), const Color(0xFFF5F3FF), '/team'),
+          const Color(0xFF047857), const Color(0xFFECFDF5), '/team'),
       _Stat('Alerts', stats.unreadNotifications, Icons.notifications_active_rounded,
-          const Color(0xFFD97706), const Color(0xFFFFFBEB), '/notifications'),
+          const Color(0xFF047857), const Color(0xFFECFDF5), '/notifications'),
     ];
 
     return Column(
@@ -404,16 +409,12 @@ class _StatTile extends StatelessWidget {
       onTap: () => context.go(data.route),
       child: Container(
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          shape: SmoothRectangleBorder(
+            borderRadius: SmoothBorderRadius(cornerRadius: 22, cornerSmoothing: 0.6),
+            side: BorderSide(color: const Color(0xFFEDE9E3)),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,39 +422,23 @@ class _StatTile extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Colored dot accent
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: data.bg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(data.icon, size: 20, color: data.color),
-                ),
+                Icon(data.icon, size: 22, color: data.color),
                 if (hasIssue)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    width: 8, height: 8,
                     decoration: BoxDecoration(
-                      color: data.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Open',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: data.color,
-                      ),
+                      color: data.color,
+                      shape: BoxShape.circle,
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
               '${data.value}',
-              style: GoogleFonts.inter(
-                fontSize: 28,
+              style: TextStyle(
+                fontFamily: '.SF Pro Display',
+                fontSize: 34,
                 fontWeight: FontWeight.w700,
                 color: AppColors.darkText,
                 height: 1,
@@ -462,7 +447,8 @@ class _StatTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               data.label,
-              style: GoogleFonts.inter(
+              style: TextStyle(
+                fontFamily: '.SF Pro Text',
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: AppColors.midText,
@@ -502,20 +488,23 @@ class _QuickActions extends StatelessWidget {
             child: GestureDetector(
               onTap: () => context.go(a.route),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: ShapeDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: SmoothBorderRadius(cornerRadius: 18, cornerSmoothing: 0.6),
+                    side: BorderSide(color: const Color(0xFFEDE9E3)),
+                  ),
                 ),
                 child: Column(
                   children: [
-                    Icon(a.icon, size: 28, color: a.color),
-                    const SizedBox(height: 10),
+                    Icon(a.icon, size: 24, color: a.color),
+                    const SizedBox(height: 8),
                     Text(
                       a.label,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontFamily: '.SF Pro Text',
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColors.darkText,
                       ),

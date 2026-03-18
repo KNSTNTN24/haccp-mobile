@@ -396,8 +396,8 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8ECF0)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+          border: Border.all(color: const Color(0xFFEDE9E3)),
+          // no shadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,8 +601,8 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
         width: 60, height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF10B981), Color(0xFF059669)]),
-          boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))],
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF065F46), Color(0xFF047857)]),
+          boxShadow: [BoxShadow(color: const Color(0xFF047857).withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))],
         ),
         child: Material(
           color: Colors.transparent,

@@ -74,10 +74,10 @@ class AppScaffold extends ConsumerWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  colors: [Color(0xFF065F46), Color(0xFF047857)],
                 ),
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                // no shadow — clean
               ),
               child: Center(
                 child: Text(initial,
@@ -91,10 +91,7 @@ class AppScaffold extends ConsumerWidget {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.divider.withValues(alpha: 0.5))),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -4)),
-          ],
+          border: Border(top: BorderSide(color: const Color(0xFFEDE9E3), width: 0.5)),
         ),
         child: SafeArea(
           top: false,
@@ -144,13 +141,13 @@ class _NavBarItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(icon, size: 24,
-            color: isActive ? AppColors.primary : const Color(0xFF94A3B8)),
+            color: isActive ? AppColors.primary : const Color(0xFFB0A99F)),
         ),
         const SizedBox(height: 3),
         Text(label, style: TextStyle(fontFamily: '.SF Pro Text',
           fontSize: 11,
           fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-          color: isActive ? AppColors.primary : const Color(0xFF94A3B8),
+          color: isActive ? AppColors.primary : const Color(0xFFB0A99F),
         )),
       ],
     );

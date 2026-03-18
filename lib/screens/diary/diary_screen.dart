@@ -854,14 +854,14 @@ class _ExportSheetState extends ConsumerState<_ExportSheet> {
               decoration: BoxDecoration(
                 gradient: _isGenerating
                     ? null
-                    : const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                    : const LinearGradient(colors: [Color(0xFF065F46), Color(0xFF047857)]),
                 color: _isGenerating ? Colors.grey.shade300 : null,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: _isGenerating
                     ? []
                     : [
                         BoxShadow(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                          color: const Color(0xFF047857).withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

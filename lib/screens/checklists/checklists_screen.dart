@@ -103,11 +103,11 @@ class _ChecklistsScreenState extends ConsumerState<ChecklistsScreen> {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  colors: [Color(0xFF065F46), Color(0xFF047857)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                    color: const Color(0xFF047857).withValues(alpha: 0.4),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -364,12 +364,12 @@ class _EmptyStateState extends State<_EmptyState>
                         horizontal: 28, vertical: 14),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                        colors: [Color(0xFF065F46), Color(0xFF047857)],
                       ),
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                          color: const Color(0xFF047857).withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -427,7 +427,7 @@ class _ClipboardPainter extends CustomPainter {
         const Radius.circular(12),
       ),
       Paint()
-        ..color = const Color(0xFF10B981).withValues(alpha: 0.08)
+        ..color = const Color(0xFF047857).withValues(alpha: 0.08)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
     );
 
@@ -496,7 +496,7 @@ class _ClipboardPainter extends CustomPainter {
             : 1.0;
 
     final paint = Paint()
-      ..color = const Color(0xFF10B981).withValues(alpha: opacity)
+      ..color = const Color(0xFF047857).withValues(alpha: opacity)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -518,7 +518,7 @@ class _ClipboardPainter extends CustomPainter {
     canvas.drawCircle(
       Offset(x, y),
       scale,
-      Paint()..color = const Color(0xFF10B981).withValues(alpha: opacity),
+      Paint()..color = const Color(0xFF047857).withValues(alpha: opacity),
     );
   }
 
@@ -677,14 +677,8 @@ class _ChecklistCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8ECF0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFFEDE9E3)),
+          // no shadow
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

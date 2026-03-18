@@ -629,7 +629,7 @@ class _ChecklistManageScreenState
                   gradient: _saving
                       ? null
                       : const LinearGradient(
-                          colors: [Color(0xFF10B981), Color(0xFF059669)],
+                          colors: [Color(0xFF065F46), Color(0xFF047857)],
                         ),
                   color: _saving ? const Color(0xFFD1D5DB) : null,
                   borderRadius: BorderRadius.circular(16),

@@ -31,8 +31,8 @@ class ProfileScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE8ECF0)),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+              border: Border.all(color: const Color(0xFFEDE9E3)),
+              // no shadow,
             ),
             child: Column(
               children: [
@@ -105,7 +105,7 @@ class ProfileScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE8ECF0)),
+                border: Border.all(color: const Color(0xFFEDE9E3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -145,8 +145,8 @@ class _MenuCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8ECF0)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+        border: Border.all(color: const Color(0xFFEDE9E3)),
+        // no shadow,
       ),
       child: Column(
         children: children.asMap().entries.map((e) {
