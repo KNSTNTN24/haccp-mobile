@@ -286,8 +286,92 @@ Phase 4 (18+ months):
 
 ---
 
+## "Aspiring Restaurateur" Channel — Content & Starter Kit Strategy
+
+### The Audience
+- UK: ~500K registered food businesses, but millions dream about opening one
+- "How to open a restaurant" — massive search volume on YouTube, TikTok, Google
+- Typical journey: TikTok inspiration ("day in the life bakery owner") → YouTube education (Wilson K Lee, 164K subs) → Google research → Udemy course (£10-20) → actual planning
+- Key stat: 60% of new restaurants close within year 1. High churn = need constant inflow of new businesses
+
+### Where They Hang Out
+
+| Platform | Key Players | Audience Type |
+|----------|------------|---------------|
+| **YouTube** | Wilson K Lee (164K), The Restaurant Boss (134K), Making Dough Show (12.7K), Fallow (2M) | Serious planners — watching "how to" guides |
+| **TikTok** | #dayinmylife (35B views combined), bakery/café owner vlogs, Straker, FoodyFella | Dreamers — emotional inspiration, top of funnel |
+| **Udemy/Coursera** | "How to Start a Restaurant UK" (£10-20), Alison (free), UK Public College (£77) | Committed learners — already investing time/money |
+| **Blogs/SEO** | Restroworks, Anna Money, Le Cordon Bleu guides | Google searchers — "how much does it cost to open a restaurant UK" |
+| **Instagram** | Behind-the-scenes café content, food entrepreneur accounts | Visual dreamers — aesthetics over substance |
+
+### Strategy C: "Restaurant Starter Kit" in Free Tier 🔥🔥 (Recommended)
+
+Position free tier as the toolkit for people OPENING their first restaurant:
+
+| What We Give (Free) | Why Dreamer Needs It | What It Does For Us |
+|---------------------|---------------------|---------------------|
+| Pre-built SFBB checklist templates | "I need a HACCP plan to register my business" | Demonstrates product value |
+| Food Safety training module (CPD) | "I need food hygiene certificate" | Already in backlog (v1.4) |
+| "Opening Checklist" template | "What do I need before opening day?" | Useful content = retention |
+| Allergen matrix template | "How do I show allergens on my menu?" | Shows allergen module |
+| Sample recipes with costings | "How do I calculate food cost?" | Shows recipe module |
+
+**Landing page pitch:**
+> "Opening your first restaurant? HACCP Mobile gives you everything you need for food safety compliance — free. Checklists, allergen tracking, recipes, and training. All in one app."
+
+**Lock-in mechanism:** User downloads app months before opening → sets up checklists, enters recipes, passes training → opens restaurant → already dependent on app → converts to Pro.
+
+**Unique positioning:** No competitor targets pre-opening phase. Trail, FoodDocs, Navitas all sell to existing businesses. We catch them BEFORE they choose a competitor.
+
+### Strategy A: Content Marketing (own content) ✅ Free, scalable
+
+| Content Idea | Platform | Hook |
+|-------------|----------|------|
+| "5 Things EHO Checks First When Inspecting Your Restaurant" | YouTube + Blog | Fear-based SEO |
+| "How to Set Up HACCP in 15 Minutes (I'll Show You)" | YouTube | App demo disguised as education |
+| "Day 1 Opening My Restaurant — What Nobody Tells You About Food Safety" | TikTok | Emotional storytelling |
+| "I Passed EHO Inspection With 5 Stars — Here's How" | TikTok/Insta | Social proof |
+| "SFBB Explained in 60 Seconds" | TikTok Shorts | Viral potential |
+| "The £25/month Tool That Replaced My Paper HACCP Folder" | YouTube | Direct but authentic |
+
+**Key insight:** Food safety content = boring. "How not to fail your inspection" content = fear + motivation. Fear sells.
+
+**Cost:** Free (iPhone + knowledge). One quality video/week is enough.
+
+### Strategy B: YouTube Sponsorship ⚠️ Test with small budget
+
+- Making Dough Show (12.7K, UK-based, bought failing restaurant) — most relevant, £200-500 per video
+- Wilson K Lee (164K) — international, £1000-2000, broader reach
+- One or two sponsored videos to test conversion
+- Not a primary strategy
+
+### Strategy D: Udemy/Course Partnership — Low priority
+
+- Contact Udemy instructor → mention app in "Food Safety Setup" section
+- Low effort, low reward — Udemy audience is small and price-sensitive
+- Do if time permits, don't prioritize
+
+### Critical Assessment
+
+| Pro | Con |
+|-----|-----|
+| Massive addressable audience (millions dream about restaurants) | 90% of dreamers never open — low conversion to actual users |
+| No competitor targets pre-opening phase | 60% close in year 1 — high churn even among those who do open |
+| Lock-in from day 1 | Long cycle: dream → plan → open = 6-18 months |
+| Great narrative for grants ("lowering barriers") | Content marketing requires consistent effort |
+| 2026 UK digital records mandate = tailwind | Building brand takes time, no instant results |
+
+### Decision
+- **Strategy C (Starter Kit):** YES — implement as part of free tier positioning. Minimal dev work, mostly marketing/templates
+- **Strategy A (Content):** YES — start creating content when ready. Zero cost, compounds over time
+- **Strategy B (YouTube sponsors):** MAYBE — test with £500 budget on Making Dough Show
+- **Strategy D (Udemy):** LOW PRIORITY — nice to have
+
+---
+
 ## Waiting For
 - [ ] Maria's feedback on feature priorities
 - [ ] Any additional input before starting v1.2 implementation
 - [ ] Decision on FSA outreach timing
 - [ ] Research Innovate UK grant application deadlines
+- [ ] Content marketing plan — topics, schedule, who creates
