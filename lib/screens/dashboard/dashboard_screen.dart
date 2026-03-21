@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/checkin_provider.dart';
 import '../../providers/dashboard_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -20,7 +21,10 @@ class DashboardScreen extends ConsumerWidget {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: () async => ref.invalidate(dashboardDataProvider),
+      onRefresh: () async {
+        ref.invalidate(dashboardDataProvider);
+        ref.invalidate(todayCheckinsProvider);
+      },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
@@ -34,6 +38,10 @@ class DashboardScreen extends ConsumerWidget {
             data: (data) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Check-in ──
+                const _CheckInBlock(),
+                const SizedBox(height: 20),
+
                 // ── My Tasks ──
                 _MyTasksBlock(data: data),
                 const SizedBox(height: 20),
@@ -54,6 +62,175 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CHECK-IN / CHECK-OUT
+// ─────────────────────────────────────────────
+
+class _CheckInBlock extends ConsumerStatefulWidget {
+  const _CheckInBlock();
+
+  @override
+  ConsumerState<_CheckInBlock> createState() => _CheckInBlockState();
+}
+
+class _CheckInBlockState extends ConsumerState<_CheckInBlock> {
+  bool _isLoading = false;
+
+  Future<void> _toggleCheckIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final active = ref.read(myActiveCheckinProvider);
+      if (active != null) {
+        await checkOut(ref);
+      } else {
+        await checkIn(ref);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(todayCheckinsProvider);
+    final activeCheckin = ref.watch(myActiveCheckinProvider);
+    final onSite = ref.watch(onSiteStaffProvider);
+    final isCheckedIn = activeCheckin != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: SmoothRectangleBorder(
+          borderRadius: SmoothBorderRadius(cornerRadius: 20, cornerSmoothing: 0.6),
+          side: BorderSide(color: isCheckedIn ? AppColors.primary.withValues(alpha: 0.3) : const Color(0xFFEDE9E3)),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Button row
+          Row(
+            children: [
+              Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: isCheckedIn ? AppColors.primaryPale : const Color(0xFFF3F4F6),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isCheckedIn ? Icons.location_on_rounded : Icons.location_off_rounded,
+                  size: 20,
+                  color: isCheckedIn ? AppColors.primary : AppColors.midText,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isCheckedIn ? 'On Site' : 'Off Site',
+                      style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkText),
+                    ),
+                    if (isCheckedIn)
+                      Text(
+                        'Since ${DateFormat('HH:mm').format(activeCheckin.checkedInAt.toLocal())}',
+                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.midText),
+                      ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: _isLoading ? null : _toggleCheckIn,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: ShapeDecoration(
+                    gradient: isCheckedIn
+                        ? null
+                        : const LinearGradient(colors: [Color(0xFF065F46), Color(0xFF047857)]),
+                    color: isCheckedIn ? Colors.white : null,
+                    shape: SmoothRectangleBorder(
+                      borderRadius: SmoothBorderRadius(cornerRadius: 12, cornerSmoothing: 0.6),
+                      side: isCheckedIn
+                          ? BorderSide(color: AppColors.error.withValues(alpha: 0.3))
+                          : BorderSide.none,
+                    ),
+                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 18, height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: isCheckedIn ? AppColors.error : Colors.white,
+                          ),
+                        )
+                      : Text(
+                          isCheckedIn ? 'Leave' : "I'm Here",
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isCheckedIn ? AppColors.error : Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+
+          // On-site avatars
+          if (onSite.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                // Avatar stack
+                SizedBox(
+                  width: onSite.length > 5
+                      ? 5 * 26.0 + 28
+                      : onSite.length * 26.0 + 2,
+                  height: 30,
+                  child: Stack(
+                    children: [
+                      for (var i = 0; i < (onSite.length > 5 ? 5 : onSite.length); i++)
+                        Positioned(
+                          left: i * 26.0,
+                          child: Container(
+                            width: 30, height: 30,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryPale,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                (onSite[i].fullName ?? '?')[0].toUpperCase(),
+                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${onSite.length} on site',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.midText),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
