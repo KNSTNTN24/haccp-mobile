@@ -1,7 +1,7 @@
 # HACCP Mobile — Полное состояние проекта
 
-> Обновлено: 2026-03-17
-> Версия: HACCP 1.1
+> Обновлено: 2026-03-21
+> Версия: HACCP 1.2
 
 ## Обзор
 
@@ -51,7 +51,7 @@ lib/
 │   ├── profile.dart                   # UserRole enum + Profile (isManager, canManageRecipes)
 │   ├── business.dart                  # Business
 │   ├── checklist.dart                 # ChecklistTemplate, Item, Completion, Response
-│   ├── recipe.dart                    # Recipe (+dietary getters: isVegetarian/isVegan/isGlutenFree/isDairyFree/dietaryLabels), Ingredient, RecipeIngredient
+│   ├── recipe.dart                    # Recipe (+dietary getters, RecipeCategory enum with cocktail/beverage), Ingredient, RecipeIngredient
 │   ├── menu_item.dart                 # MenuItem
 │   ├── incident.dart                  # Incident (status, resolvedBy, resolvedAt, resolvedNotes)
 │   ├── supplier.dart                  # Supplier
@@ -59,8 +59,8 @@ lib/
 │   ├── diary_entry.dart               # DiaryEntry (legacy, не используется)
 │   └── document.dart                  # Document, DocumentAccess, AccessLevel
 ├── providers/
-│   ├── auth_provider.dart             # Auth + Profile + Business providers
-│   ├── dashboard_provider.dart        # DashboardStats aggregation
+│   ├── auth_provider.dart             # Auth + Profile + Business providers + updateProfile()
+│   ├── dashboard_provider.dart        # DashboardData (MyTasks, TeamTasks, Incidents, Notifications)
 │   └── documents_provider.dart        # Documents CRUD + Storage upload
 ├── screens/
 │   ├── auth/
@@ -68,11 +68,11 @@ lib/
 │   │   ├── register_screen.dart       # Регистрация (+ invite token)
 │   │   └── setup_screen.dart          # Создание бизнеса / Join Team
 │   ├── dashboard/
-│   │   └── dashboard_screen.dart      # Статистика + quick actions
+│   │   └── dashboard_screen.dart      # 4 блока: My Tasks, Team Tasks, Incidents, Notifications
 │   ├── checklists/
 │   │   ├── checklists_screen.dart     # Список шаблонов + edit/delete (manager)
-│   │   ├── checklist_detail_screen.dart # Заполнение + activate/deactivate/delete/history
-│   │   ├── checklist_manage_screen.dart # Создание шаблона
+│   │   ├── checklist_detail_screen.dart # Заполнение + activate/deactivate/delete/history/edit
+│   │   ├── checklist_manage_screen.dart # Создание + редактирование шаблона (templateId param)
 │   │   └── checklist_history_screen.dart # История заполнений (expandable cards)
 │   ├── recipes/
 │   │   ├── recipes_screen.dart        # Список (active + inactive section)
@@ -95,11 +95,14 @@ lib/
 │   │   └── document_detail_screen.dart # Просмотр + управление доступом
 │   ├── notifications/
 │   │   └── notifications_screen.dart  # Уведомления
+│   ├── reports/
+│   │   └── reports_screen.dart        # Compliance Reports: date range, checklist filter, PDF export
 │   └── ai_import/
 │       └── ai_import_screen.dart      # AI Recipe Import (text/PDF → Claude API → structured recipe)
 ├── utils/
 │   ├── diary_export.dart              # PDF/CSV генерация дневника + кроссплатформенный download/share
 │   ├── menu_export.dart               # PDF/CSV экспорт меню с dietary labels и аллергенами
+│   ├── reports_export.dart            # PDF генерация compliance report с per-item breakdown
 │   ├── file_saver_stub.dart           # Stub для conditional import
 │   ├── file_saver_web.dart            # Web: dart:html Blob + AnchorElement download
 │   └── file_saver_mobile.dart         # Mobile: path_provider + share_plus
@@ -126,6 +129,7 @@ ShellRoute (AppScaffold — bottom navigation):
   /dashboard              → DashboardScreen
   /checklists             → ChecklistsScreen
     /checklists/new       → ChecklistManageScreen (manager/owner)
+    /checklists/edit/:id  → ChecklistManageScreen (edit mode)
     /checklists/:id       → ChecklistDetailScreen
     /checklists/:id/history → ChecklistHistoryScreen
   /recipes                → RecipesScreen
@@ -133,6 +137,7 @@ ShellRoute (AppScaffold — bottom navigation):
     /recipes/edit/:id     → RecipeEditScreen
     /recipes/:id          → RecipeDetailScreen
   /menu                   → AllergenMatrixScreen
+  /reports                → ReportsScreen
   /diary                  → DiaryScreen
   /incidents              → IncidentsScreen
   /suppliers              → SuppliersScreen
@@ -162,7 +167,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | `profileProvider` | `FutureProvider<Profile?>` | Профиль из таблицы profiles |
 | `businessProvider` | `FutureProvider<Business?>` | Бизнес текущего пользователя |
 | `authNotifierProvider` | `NotifierProvider<AuthNotifier>` | signIn/signUp/signOut/setupBusiness/joinWithInvite |
-| `dashboardStatsProvider` | `FutureProvider<DashboardStats>` | Агрегация статистики для дашборда |
+| `dashboardDataProvider` | `FutureProvider<DashboardData>` | My Tasks, Team Tasks, Incidents, Notifications |
 | `checklistsProvider` | `FutureProvider` (в экране) | Шаблоны чеклистов с items |
 | `checklistCompletionsProvider` | `FutureProvider` (в checklists_screen) | Все последние completions для статусов |
 | `completionHistoryProvider` | `FutureProvider.family<CompletionHistoryData, String>` | История заполнений чеклиста |
@@ -275,7 +280,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | id | UUID PK | |
 | name | TEXT NOT NULL | Название |
 | description | TEXT | |
-| category | TEXT NOT NULL | starter/main/dessert/side/sauce/drink/other |
+| category | TEXT NOT NULL | starter/main/dessert/side/sauce/drink/cocktail/beverage/other |
 | instructions | TEXT | Инструкции |
 | cooking_method | TEXT | Метод готовки |
 | cooking_temp | NUMERIC | Температура |
@@ -504,11 +509,13 @@ ShellRoute (AppScaffold — bottom navigation):
 ### ✅ Полностью реализовано
 
 1. **Auth** — Login, Register, Setup (Create Business / Join Team)
-2. **Dashboard** — Статистика (overview grid), quick actions
-3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям (owner=все, остальные=assigned+supervised), создание с supervisor role, заполнение (tick/temp/text/yes_no/photo), sign-off workflow, activate/deactivate, delete, **SFBB категории** (Cleaning/Cooking/Chilling/Cross-Contamination/Management/Training/General) с фильтрацией чипами, **фото-тип** для визуальных проверок (камера/галерея → Supabase Storage)
+2. **Dashboard** — 4 блока: My Tasks (green gradient card, progress ring), Team Tasks (manager/owner only, avatars + progress bars), Open Incidents, Notifications. `dashboardDataProvider` с 5 параллельными запросами
+3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям, создание + **редактирование** шаблонов (templateId param), заполнение (tick/temp/text/yes_no/photo), sign-off workflow, activate/deactivate, delete, **SFBB категории** с фильтрацией чипами, **фото-тип** для визуальных проверок
 4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items, миниатюры фото
 14. **Deliveries** — Запись поставок с выбором поставщика, температурой продукта, заметками, мульти-фото (инвойс/чек). Автоматическое время и имя принявшего.
-5. **Рецепты** — Список (active/inactive sections), создание, edit, deactivate, delete, dietary badges (Vegetarian/Vegan/GF/DF)
+15. **Reports** — Compliance report с date range picker, multi-select чеклистов, per-item PDF с compliance rate, flagged items highlighting. Пресеты 7/30/90 дней.
+16. **Edit Profile** — Смена имени, загрузка аватара (camera/gallery → Supabase Storage → avatars folder), signed URL для отображения.
+5. **Рецепты** — Список (active/inactive sections), создание, edit, deactivate, delete, dietary badges (Vegetarian/Vegan/GF/DF), **категории cocktail/beverage**
 6. **Аллергены** — Матрица 14 аллергенов × рецепты, бейджи с эмодзи, dietary classification
 7. **Экспорт меню** — PDF/CSV с группировкой по категориям, dietary labels, опциональные аллергены (menu_export.dart)
 8. **Дневник (Daily Diary)** — Агрегатор событий за день: чеклисты + инциденты с карточками, навигация по датам, экспорт отчёта (PDF/CSV) за период с выбором включаемых секций
@@ -522,23 +529,22 @@ ShellRoute (AppScaffold — bottom navigation):
 
 - **Уведомления** — отображение есть, но нет автоматической генерации
 
-### ❌ Не реализовано (v1.2+)
+### ❌ Не реализовано (v1.3+)
 
-#### v1.2 — Essential Gaps
-- [ ] **Редактирование шаблона чеклиста** — edit существующего (кнопка есть, показывает "Coming soon")
-- [ ] **Редактирование профиля** — смена имени, аватара
+#### v1.3 — Operations & Automation
+- [ ] **Check-in/Check-out** — "who's on site", кнопка на дашборде, таблица staff_checkins
+- [ ] **Prep Lists** — тип чеклиста с привязкой к рецептам, quantity/unit/done
+- [ ] **Recipe Scaling** — пропорциональный пересчёт по порциям
+- [ ] **Clean menu export** — PDF/HTML с аллергенами, embeddable
+- [ ] **Push уведомления (FCM)** — Firebase Cloud Messaging
+- [ ] **Авто-генерация уведомлений** — просроченные чеклисты, температурные алерты
 - [ ] **Настройки бизнеса** — редактирование адреса, названия
-- [ ] **Журнал чеклистов (PDF)** — полный экспорт с детализацией по каждому пункту
 - [ ] **Просмотр/редактирование поставки** — detail/edit для существующей записи
 
-#### v1.3 — Notifications & Automation
-- [ ] **Авто-генерация уведомлений** — просроченные чеклисты, температурные алерты, истекающие документы
-- [ ] **Notification Rules** — настройка правил уведомлений (таблица есть в БД)
-- [ ] **Push уведомления (FCM)** — Firebase Cloud Messaging
-- [ ] **Email уведомления** — критические алерты по email
-- [ ] **Escalation** — напоминание → эскалация менеджеру
-
-#### v1.4 — Polish
+#### v1.4 — AI & Training
+- [ ] **AI Training sheets** — генерация обучающих материалов из рецептов
+- [ ] **Shopping Lists** — генерация из выбранных рецептов + порций
+- [ ] **KBJU estimation via AI** — с дисклеймером
 - [ ] **Фото рецептов** — загрузка в Supabase Storage
 - [ ] **Recipe Versioning** — версионирование рецептов
 
