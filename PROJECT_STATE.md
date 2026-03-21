@@ -57,10 +57,12 @@ lib/
 │   ├── supplier.dart                  # Supplier
 │   ├── notification.dart              # AppNotification
 │   ├── diary_entry.dart               # DiaryEntry (legacy, не используется)
-│   └── document.dart                  # Document, DocumentAccess, AccessLevel
+│   ├── document.dart                  # Document, DocumentAccess, AccessLevel
+│   └── checkin.dart                   # StaffCheckin (check-in/out, joined profile data)
 ├── providers/
 │   ├── auth_provider.dart             # Auth + Profile + Business providers + updateProfile()
 │   ├── dashboard_provider.dart        # DashboardData (MyTasks, TeamTasks, Incidents, Notifications)
+│   ├── checkin_provider.dart          # Check-in/out: todayCheckins, myActiveCheckin, onSiteStaff
 │   └── documents_provider.dart        # Documents CRUD + Storage upload
 ├── screens/
 │   ├── auth/
@@ -68,7 +70,7 @@ lib/
 │   │   ├── register_screen.dart       # Регистрация (+ invite token)
 │   │   └── setup_screen.dart          # Создание бизнеса / Join Team
 │   ├── dashboard/
-│   │   └── dashboard_screen.dart      # 4 блока: My Tasks, Team Tasks, Incidents, Notifications
+│   │   └── dashboard_screen.dart      # 5 блоков: Check-in, My Tasks, Team Tasks, Incidents, Notifications
 │   ├── checklists/
 │   │   ├── checklists_screen.dart     # Список шаблонов + edit/delete (manager)
 │   │   ├── checklist_detail_screen.dart # Заполнение + activate/deactivate/delete/history/edit
@@ -168,6 +170,9 @@ ShellRoute (AppScaffold — bottom navigation):
 | `businessProvider` | `FutureProvider<Business?>` | Бизнес текущего пользователя |
 | `authNotifierProvider` | `NotifierProvider<AuthNotifier>` | signIn/signUp/signOut/setupBusiness/joinWithInvite |
 | `dashboardDataProvider` | `FutureProvider<DashboardData>` | My Tasks, Team Tasks, Incidents, Notifications |
+| `todayCheckinsProvider` | `FutureProvider<List<StaffCheckin>>` | Все check-ins за сегодня для бизнеса |
+| `myActiveCheckinProvider` | `Provider<StaffCheckin?>` | Активный check-in текущего пользователя |
+| `onSiteStaffProvider` | `Provider<List<StaffCheckin>>` | Кто сейчас on site |
 | `checklistsProvider` | `FutureProvider` (в экране) | Шаблоны чеклистов с items |
 | `checklistCompletionsProvider` | `FutureProvider` (в checklists_screen) | Все последние completions для статусов |
 | `completionHistoryProvider` | `FutureProvider.family<CompletionHistoryData, String>` | История заполнений чеклиста |
@@ -417,7 +422,18 @@ ShellRoute (AppScaffold — bottom navigation):
 | reviewed_by | UUID | FK → profiles |
 | reviewed_at | TIMESTAMPTZ | |
 
-#### 20. `notification_rules` (не используется в мобильном)
+#### 20. `staff_checkins`
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID PK | gen_random_uuid() |
+| user_id | UUID NOT NULL | FK → profiles(id), CASCADE |
+| business_id | UUID NOT NULL | FK → businesses(id), CASCADE |
+| checked_in_at | TIMESTAMPTZ NOT NULL | DEFAULT NOW() |
+| checked_out_at | TIMESTAMPTZ | NULL = ещё на месте |
+| date | DATE NOT NULL | DEFAULT CURRENT_DATE |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() |
+
+#### 21. `notification_rules` (не используется в мобильном)
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID PK | |
@@ -509,7 +525,7 @@ ShellRoute (AppScaffold — bottom navigation):
 ### ✅ Полностью реализовано
 
 1. **Auth** — Login, Register, Setup (Create Business / Join Team)
-2. **Dashboard** — 4 блока: My Tasks (green gradient card, progress ring), Team Tasks (manager/owner only, avatars + progress bars), Open Incidents, Notifications. `dashboardDataProvider` с 5 параллельными запросами
+2. **Dashboard** — 5 блоков: **Check-in/out** ("I'm Here"/"Leave" + on-site avatars), My Tasks (green gradient card, progress ring), Team Tasks (manager/owner only, avatars + progress bars), Open Incidents, Notifications
 3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям, создание + **редактирование** шаблонов (templateId param), заполнение (tick/temp/text/yes_no/photo), sign-off workflow, activate/deactivate, delete, **SFBB категории** с фильтрацией чипами, **фото-тип** для визуальных проверок
 4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items, миниатюры фото
 14. **Deliveries** — Запись поставок с выбором поставщика, температурой продукта, заметками, мульти-фото (инвойс/чек). Автоматическое время и имя принявшего.
@@ -532,7 +548,7 @@ ShellRoute (AppScaffold — bottom navigation):
 ### ❌ Не реализовано (v1.3+)
 
 #### v1.3 — Operations & Automation
-- [ ] **Check-in/Check-out** — "who's on site", кнопка на дашборде, таблица staff_checkins
+- [x] **Check-in/Check-out** — "who's on site", кнопка на дашборде, таблица staff_checkins ✅
 - [ ] **Prep Lists** — тип чеклиста с привязкой к рецептам, quantity/unit/done
 - [ ] **Recipe Scaling** — пропорциональный пересчёт по порциям
 - [ ] **Clean menu export** — PDF/HTML с аллергенами, embeddable
