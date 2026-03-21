@@ -37,6 +37,7 @@ class _ChecklistManageScreenState
   final List<String> _assignedRoles = [];
   String? _supervisorRole;
   SfbbSection _sfbbSection = SfbbSection.general;
+  String? _deadlineTime;
   bool _saving = false;
   bool _loadingTemplate = false;
   final List<_ChecklistItemEntry> _items = [];
@@ -64,6 +65,7 @@ class _ChecklistManageScreenState
       _assignedRoles.clear();
       _assignedRoles.addAll(template.assignedRoles);
       _supervisorRole = template.supervisorRole;
+      _deadlineTime = template.deadlineTime;
       _sfbbSection = SfbbSection.fromString(template.sfbbSection ?? 'general');
       _items.clear();
       final sortedItems = List<ChecklistTemplateItem>.from(template.items ?? [])
@@ -150,6 +152,7 @@ class _ChecklistManageScreenState
             : _assignedRoles,
         'supervisor_role': _supervisorRole,
         'sfbb_section': _sfbbSection.name,
+        'deadline_time': _deadlineTime,
       };
 
       String templateId;
@@ -340,6 +343,102 @@ class _ChecklistManageScreenState
                       ),
                     );
                   }).toList(),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            // Deadline time picker
+            _FormCard(
+              children: [
+                Text(
+                  'Deadline (optional)',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.midText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Set a time by which this checklist must be completed',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.lightText,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final initial = _deadlineTime != null
+                            ? TimeOfDay(
+                                hour: int.parse(_deadlineTime!.split(':')[0]),
+                                minute: int.parse(_deadlineTime!.split(':')[1]),
+                              )
+                            : const TimeOfDay(hour: 10, minute: 0);
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: initial,
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _deadlineTime =
+                                '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _deadlineTime != null
+                              ? const Color(0xFF2563EB).withValues(alpha: 0.1)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _deadlineTime != null
+                                ? const Color(0xFF2563EB)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.access_time_rounded,
+                                size: 18,
+                                color: _deadlineTime != null
+                                    ? const Color(0xFF2563EB)
+                                    : AppColors.midText),
+                            const SizedBox(width: 8),
+                            Text(
+                              _deadlineTime ?? 'Set time',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: _deadlineTime != null
+                                    ? const Color(0xFF2563EB)
+                                    : AppColors.midText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_deadlineTime != null) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => setState(() => _deadlineTime = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFDC2626)),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

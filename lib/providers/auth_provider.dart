@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase.dart';
 import '../models/profile.dart';
 import '../models/business.dart';
+import '../utils/notification_helper.dart';
 
 // Current auth user
 final authStateProvider = StreamProvider<AuthState>((ref) {
@@ -128,6 +129,22 @@ class AuthNotifier extends Notifier<AsyncValue<void>> {
         'invite_token': token,
         'member_name': fullName,
       });
+
+      // Notify managers about new member
+      // Reload profile to get businessId
+      final profileData = await SupabaseConfig.client
+          .from('profiles')
+          .select('business_id')
+          .eq('id', user.id)
+          .single();
+      final bizId = profileData['business_id'] as String?;
+      if (bizId != null) {
+        NotificationHelper.onNewMemberJoined(
+          businessId: bizId,
+          memberName: fullName,
+          memberUserId: user.id,
+        );
+      }
 
       state = const AsyncValue.data(null);
       return (true, null);

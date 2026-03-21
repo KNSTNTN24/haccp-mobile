@@ -6,6 +6,7 @@ import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/incident.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/notification_helper.dart';
 
 final incidentsProvider = FutureProvider<List<Incident>>((ref) async {
   final profile = await ref.watch(profileProvider.future);
@@ -121,6 +122,13 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
                             'reported_by': profile.id,
                             'business_id': profile.businessId,
                           });
+
+                          // Notify managers
+                          NotificationHelper.onNewIncident(
+                            businessId: profile.businessId,
+                            description: descController.text,
+                            reporterUserId: profile.id,
+                          );
 
                           ref.invalidate(incidentsProvider);
                           if (context.mounted) Navigator.pop(context);
@@ -287,6 +295,12 @@ class _IncidentsScreenState extends ConsumerState<IncidentsScreen> {
                             'updated_at': DateTime.now().toUtc().toIso8601String(),
                           })
                           .eq('id', incident.id);
+
+                      // Notify the incident reporter
+                      NotificationHelper.onIncidentResolved(
+                        authorUserId: incident.reportedBy,
+                        description: incident.description,
+                      );
 
                       ref.invalidate(incidentsProvider);
                       if (context.mounted) Navigator.pop(context);

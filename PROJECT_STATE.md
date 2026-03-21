@@ -1,7 +1,7 @@
 # HACCP Mobile — Полное состояние проекта
 
 > Обновлено: 2026-03-21
-> Версия: HACCP 1.2
+> Версия: HACCP 1.3
 
 ## Обзор
 
@@ -58,11 +58,11 @@ lib/
 │   ├── notification.dart              # AppNotification
 │   ├── diary_entry.dart               # DiaryEntry (legacy, не используется)
 │   ├── document.dart                  # Document, DocumentAccess, AccessLevel
-│   └── checkin.dart                   # StaffCheckin (check-in/out, joined profile data)
+│   └── checkin.dart                   # StaffCheckin (check-in/out, mood emoji, joined profile data)
 ├── providers/
 │   ├── auth_provider.dart             # Auth + Profile + Business providers + updateProfile()
 │   ├── dashboard_provider.dart        # DashboardData (MyTasks, TeamTasks, Incidents, Notifications)
-│   ├── checkin_provider.dart          # Check-in/out: todayCheckins, myActiveCheckin, onSiteStaff
+│   ├── checkin_provider.dart          # Check-in/out with mood: todayCheckins, myActiveCheckin, onSiteStaff + auto-notifications
 │   └── documents_provider.dart        # Documents CRUD + Storage upload
 ├── screens/
 │   ├── auth/
@@ -105,6 +105,8 @@ lib/
 │   ├── diary_export.dart              # PDF/CSV генерация дневника + кроссплатформенный download/share
 │   ├── menu_export.dart               # PDF/CSV экспорт меню с dietary labels и аллергенами
 │   ├── reports_export.dart            # PDF генерация compliance report с per-item breakdown
+│   ├── notification_helper.dart       # Centralized notification creation for 9 event types
+│   ├── startup_checks.dart            # On-app-open checks: overdue checklists, expiring documents
 │   ├── file_saver_stub.dart           # Stub для conditional import
 │   ├── file_saver_web.dart            # Web: dart:html Blob + AnchorElement download
 │   └── file_saver_mobile.dart         # Mobile: path_provider + share_plus
@@ -236,6 +238,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | is_default | BOOLEAN | Дефолтный ли |
 | active | BOOLEAN | Активен ли |
 | supervisor_role | TEXT | Роль супервайзера для sign-off (NULL = не требуется) |
+| deadline_time | TEXT | Крайний срок выполнения, формат "HH:mm" (NULL = без дедлайна) |
 
 #### 5. `checklist_template_items`
 | Колонка | Тип | Описание |
@@ -431,6 +434,7 @@ ShellRoute (AppScaffold — bottom navigation):
 | checked_in_at | TIMESTAMPTZ NOT NULL | DEFAULT NOW() |
 | checked_out_at | TIMESTAMPTZ | NULL = ещё на месте |
 | date | DATE NOT NULL | DEFAULT CURRENT_DATE |
+| mood | TEXT | Emoji настроения (😊🔥😴💪🤒😎) |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 #### 21. `notification_rules` (не используется в мобильном)
@@ -525,7 +529,7 @@ ShellRoute (AppScaffold — bottom navigation):
 ### ✅ Полностью реализовано
 
 1. **Auth** — Login, Register, Setup (Create Business / Join Team)
-2. **Dashboard** — 5 блоков: **Check-in/out** ("I'm Here"/"Leave" + on-site avatars), My Tasks (green gradient card, progress ring), Team Tasks (manager/owner only, avatars + progress bars), Open Incidents, Notifications
+2. **Dashboard** — 5 блоков: **Check-in/out** ("I'm Here"/"Leave" + mood emoji picker + on-site avatars with mood), My Tasks (green gradient card, progress ring), Team Tasks (manager/owner only, avatars + progress bars), Open Incidents, Notifications. Startup checks on load (overdue checklists, expiring docs).
 3. **Чеклисты** — Список со статусами (Pending/Completed/Awaiting Sign-off/Signed Off), visibility по ролям, создание + **редактирование** шаблонов (templateId param), заполнение (tick/temp/text/yes_no/photo), sign-off workflow, activate/deactivate, delete, **SFBB категории** с фильтрацией чипами, **фото-тип** для визуальных проверок
 4. **История чеклистов** — Expandable cards с ответами, sign-off status chips, flagged items, миниатюры фото
 14. **Deliveries** — Запись поставок с выбором поставщика, температурой продукта, заметками, мульти-фото (инвойс/чек). Автоматическое время и имя принявшего.
@@ -538,22 +542,24 @@ ShellRoute (AppScaffold — bottom navigation):
 9. **Инциденты** — Список с фильтрами (All/Open/Resolved), создание, edit, delete, resolve/reopen, follow-up, timestamps, resolution info
 10. **Поставщики** — Список, add/edit/delete (manager only)
 11. **Команда** — Список участников, приглашение по токену
-12. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное
+12. **Уведомления** — Список, прочитано/не прочитано, отметка как прочитанное. **Авто-генерация** для 9 событий: check-in/out → managers, new incident → managers, incident resolved → author, flagged item → managers, sign-off required → supervisor, overdue checklist → assigned + managers, expiring document → managers, new member → managers
 13. **Документы** — Загрузка файлов (PDF, JPG, DOCX, XLSX), категории, поиск, управление доступом (all/managers/owner/custom), срок действия
 
 ### 🟡 Частично
 
-- **Уведомления** — отображение есть, но нет автоматической генерации
+- (пусто — все текущие фичи полностью реализованы)
 
 ### ❌ Не реализовано (v1.3+)
 
 #### v1.3 — Operations & Automation
 - [x] **Check-in/Check-out** — "who's on site", кнопка на дашборде, таблица staff_checkins ✅
+- [x] **Mood emoji on check-in** — emoji picker при чекине, отображение под аватарами ✅
+- [x] **Checklist deadline** — deadline_time в шаблонах, time picker в форме создания/редактирования ✅
+- [x] **In-app auto-notifications (9 events)** — check-in/out, incidents, flagged items, sign-off, overdue checklists, expiring docs, new member ✅
 - [ ] **Prep Lists** — тип чеклиста с привязкой к рецептам, quantity/unit/done
 - [ ] **Recipe Scaling** — пропорциональный пересчёт по порциям
 - [ ] **Clean menu export** — PDF/HTML с аллергенами, embeddable
 - [ ] **Push уведомления (FCM)** — Firebase Cloud Messaging
-- [ ] **Авто-генерация уведомлений** — просроченные чеклисты, температурные алерты
 - [ ] **Настройки бизнеса** — редактирование адреса, названия
 - [ ] **Просмотр/редактирование поставки** — detail/edit для существующей записи
 

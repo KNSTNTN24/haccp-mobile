@@ -9,6 +9,7 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/checkin_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/startup_checks.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -18,6 +19,16 @@ class DashboardScreen extends ConsumerWidget {
     final dataAsync = ref.watch(dashboardDataProvider);
     final profile = ref.watch(profileProvider).value;
     final isManager = profile?.isManager ?? false;
+    final user = ref.watch(currentUserProvider);
+
+    // Run startup checks (overdue checklists, expiring docs) — once per day
+    if (profile != null && user != null) {
+      StartupChecks.run(
+        businessId: profile.businessId,
+        userId: user.id,
+        userRole: profile.role.name,
+      );
+    }
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -81,15 +92,97 @@ class _CheckInBlock extends ConsumerStatefulWidget {
 class _CheckInBlockState extends ConsumerState<_CheckInBlock> {
   bool _isLoading = false;
 
+  static const _moodEmojis = ['😊', '🔥', '😴', '💪', '🤒', '😎'];
+
   Future<void> _toggleCheckIn() async {
+    final active = ref.read(myActiveCheckinProvider);
+    if (active != null) {
+      // Check out directly
+      setState(() => _isLoading = true);
+      try {
+        await checkOut(ref);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } else {
+      // Show mood picker bottom sheet
+      _showMoodPicker();
+    }
+  }
+
+  void _showMoodPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'How are you feeling?',
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.darkText),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Pick a mood for your check-in',
+              style: GoogleFonts.inter(fontSize: 14, color: AppColors.midText),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _moodEmojis.map((emoji) => GestureDetector(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _doCheckIn(emoji);
+                },
+                child: Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Center(child: Text(emoji, style: const TextStyle(fontSize: 28))),
+                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _doCheckIn(null);
+              },
+              child: Text(
+                'Skip',
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.midText),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _doCheckIn(String? mood) async {
     setState(() => _isLoading = true);
     try {
-      final active = ref.read(myActiveCheckinProvider);
-      if (active != null) {
-        await checkOut(ref);
-      } else {
-        await checkIn(ref);
-      }
+      await checkIn(ref, mood: mood);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,7 +281,7 @@ class _CheckInBlockState extends ConsumerState<_CheckInBlock> {
             ],
           ),
 
-          // On-site avatars
+          // On-site avatars with mood
           if (onSite.isNotEmpty) ...[
             const SizedBox(height: 14),
             Row(
@@ -198,25 +291,32 @@ class _CheckInBlockState extends ConsumerState<_CheckInBlock> {
                   width: onSite.length > 5
                       ? 5 * 26.0 + 28
                       : onSite.length * 26.0 + 2,
-                  height: 30,
+                  height: 42,
                   child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       for (var i = 0; i < (onSite.length > 5 ? 5 : onSite.length); i++)
                         Positioned(
                           left: i * 26.0,
-                          child: Container(
-                            width: 30, height: 30,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryPale,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: Center(
-                              child: Text(
-                                (onSite[i].fullName ?? '?')[0].toUpperCase(),
-                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 30, height: 30,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryPale,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    (onSite[i].fullName ?? '?')[0].toUpperCase(),
+                                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (onSite[i].mood != null)
+                                Text(onSite[i].mood!, style: const TextStyle(fontSize: 10)),
+                            ],
                           ),
                         ),
                     ],

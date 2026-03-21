@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../config/supabase.dart';
 import '../models/checkin.dart';
+import '../utils/notification_helper.dart';
 import 'auth_provider.dart';
 
 /// All check-ins for today for the current user's business.
@@ -44,8 +45,8 @@ final onSiteStaffProvider = Provider<List<StaffCheckin>>((ref) {
   return checkins.where((c) => c.isCheckedIn).toList();
 });
 
-/// Check in the current user.
-Future<void> checkIn(WidgetRef ref) async {
+/// Check in the current user with optional mood emoji.
+Future<void> checkIn(WidgetRef ref, {String? mood}) async {
   final profile = await ref.read(profileProvider.future);
   final user = ref.read(currentUserProvider);
   if (profile == null || user == null) return;
@@ -53,7 +54,15 @@ Future<void> checkIn(WidgetRef ref) async {
   await SupabaseConfig.client.from('staff_checkins').insert({
     'user_id': user.id,
     'business_id': profile.businessId,
+    if (mood != null) 'mood': mood,
   });
+
+  // Notify managers
+  NotificationHelper.onCheckIn(
+    businessId: profile.businessId,
+    staffName: profile.fullName ?? 'Staff',
+    staffUserId: user.id,
+  );
 
   ref.invalidate(todayCheckinsProvider);
 }
@@ -62,11 +71,22 @@ Future<void> checkIn(WidgetRef ref) async {
 Future<void> checkOut(WidgetRef ref) async {
   final activeCheckin = ref.read(myActiveCheckinProvider);
   if (activeCheckin == null) return;
+  final profile = await ref.read(profileProvider.future);
+  final user = ref.read(currentUserProvider);
 
   await SupabaseConfig.client
       .from('staff_checkins')
       .update({'checked_out_at': DateTime.now().toUtc().toIso8601String()})
       .eq('id', activeCheckin.id);
+
+  // Notify managers
+  if (profile != null && user != null) {
+    NotificationHelper.onCheckOut(
+      businessId: profile.businessId,
+      staffName: profile.fullName ?? 'Staff',
+      staffUserId: user.id,
+    );
+  }
 
   ref.invalidate(todayCheckinsProvider);
 }

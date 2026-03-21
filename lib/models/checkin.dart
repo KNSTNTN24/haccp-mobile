@@ -5,6 +5,7 @@ class StaffCheckin {
   final DateTime checkedInAt;
   final DateTime? checkedOutAt;
   final String date;
+  final String? mood;
   // Joined from profiles
   final String? fullName;
   final String? avatarUrl;
@@ -17,6 +18,7 @@ class StaffCheckin {
     required this.checkedInAt,
     this.checkedOutAt,
     required this.date,
+    this.mood,
     this.fullName,
     this.avatarUrl,
     this.role,
@@ -34,6 +36,7 @@ class StaffCheckin {
           ? DateTime.parse(json['checked_out_at'] as String)
           : null,
       date: json['date'] as String,
+      mood: json['mood'] as String?,
       fullName: json['profiles'] != null
           ? (json['profiles'] as Map)['full_name'] as String?
           : null,

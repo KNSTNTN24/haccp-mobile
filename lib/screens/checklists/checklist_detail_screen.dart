@@ -10,6 +10,7 @@ import '../../config/supabase.dart';
 import '../../config/theme.dart';
 import '../../models/checklist.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/notification_helper.dart';
 import 'checklists_screen.dart';
 
 enum _ScreenMode { fill, readOnly, signOff }
@@ -132,6 +133,31 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
           }).toList();
 
       await SupabaseConfig.client.from('checklist_responses').insert(responseRows);
+
+      // Notify for flagged items
+      final flaggedEntries = responseRows.where((r) => r['flagged'] == true);
+      for (final flagged in flaggedEntries) {
+        final itemId = flagged['item_id'] as String;
+        final item = _template!.items?.firstWhere((i) => i.id == itemId);
+        if (item != null) {
+          NotificationHelper.onFlaggedItem(
+            businessId: profile.businessId,
+            checklistName: _template!.name,
+            itemName: item.name,
+            reporterUserId: profile.id,
+          );
+        }
+      }
+
+      // Notify for sign-off if supervisor role is set
+      if (_template!.supervisorRole != null && _template!.supervisorRole!.isNotEmpty) {
+        NotificationHelper.onSignOffRequired(
+          businessId: profile.businessId,
+          supervisorRole: _template!.supervisorRole!,
+          checklistName: _template!.name,
+          completedByName: profile.fullName ?? 'Staff',
+        );
+      }
 
       ref.invalidate(checklistCompletionsProvider);
 

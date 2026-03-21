@@ -134,6 +134,7 @@ class ChecklistTemplate {
   final DateTime createdAt;
   final List<ChecklistTemplateItem>? items;
   final String? supervisorRole;
+  final String? deadlineTime;
 
   ChecklistTemplate({
     required this.id,
@@ -148,6 +149,7 @@ class ChecklistTemplate {
     required this.createdAt,
     this.items,
     this.supervisorRole,
+    this.deadlineTime,
   });
 
   factory ChecklistTemplate.fromJson(Map<String, dynamic> json) {
@@ -168,6 +170,7 @@ class ChecklistTemplate {
               .toList()
           : null,
       supervisorRole: json['supervisor_role'] as String?,
+      deadlineTime: json['deadline_time'] as String?,
     );
   }
 
@@ -181,6 +184,7 @@ class ChecklistTemplate {
         'is_default': isDefault,
         'active': active,
         'supervisor_role': supervisorRole,
+        'deadline_time': deadlineTime,
       };
 }
 

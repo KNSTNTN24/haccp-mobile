@@ -98,6 +98,8 @@ class NotificationsScreen extends ConsumerWidget {
       case 'checklist': return Icons.checklist;
       case 'incident': return Icons.warning_amber;
       case 'team': return Icons.people;
+      case 'checkin': return Icons.location_on_rounded;
+      case 'document': return Icons.description_rounded;
       default: return Icons.info;
     }
   }
