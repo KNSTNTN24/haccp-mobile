@@ -5,6 +5,8 @@ enum RecipeCategory {
   side,
   sauce,
   drink,
+  cocktail,
+  beverage,
   other;
 
   String get displayName {
@@ -21,6 +23,10 @@ enum RecipeCategory {
         return 'Sauce';
       case RecipeCategory.drink:
         return 'Drink';
+      case RecipeCategory.cocktail:
+        return 'Cocktail';
+      case RecipeCategory.beverage:
+        return 'Beverage';
       case RecipeCategory.other:
         return 'Other';
     }

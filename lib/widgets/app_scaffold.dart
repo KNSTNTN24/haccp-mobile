@@ -33,6 +33,7 @@ class AppScaffold extends ConsumerWidget {
     '/documents': 'Documents',
     '/ai-import': 'AI Import',
     '/deliveries': 'Deliveries',
+    '/reports': 'Reports',
   };
 
   int _currentIndex(String location) {

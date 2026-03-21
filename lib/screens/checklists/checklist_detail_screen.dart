@@ -371,7 +371,9 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
               icon: const Icon(Icons.more_vert, size: 22),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               onSelected: (value) {
-                if (value == 'history') {
+                if (value == 'edit') {
+                  context.push('/checklists/edit/${widget.templateId}');
+                } else if (value == 'history') {
                   context.go('/checklists/${widget.templateId}/history');
                 } else if (value == 'toggle_active') {
                   _toggleActive();
@@ -380,6 +382,16 @@ class _ChecklistDetailScreenState extends ConsumerState<ChecklistDetailScreen> {
                 }
               },
               itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, size: 18, color: AppColors.midText),
+                      const SizedBox(width: 10),
+                      Text('Edit Template', style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText)),
+                    ],
+                  ),
+                ),
                 PopupMenuItem(
                   value: 'history',
                   child: Row(

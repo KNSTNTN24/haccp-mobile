@@ -136,6 +136,31 @@ class AuthNotifier extends Notifier<AsyncValue<void>> {
       return (false, e.toString());
     }
   }
+  Future<(bool, String?)> updateProfile({
+    String? fullName,
+    String? avatarUrl,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final user = SupabaseConfig.auth.currentUser;
+      if (user == null) throw Exception('Not authenticated');
+
+      final updates = <String, dynamic>{};
+      if (fullName != null) updates['full_name'] = fullName;
+      if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+
+      await SupabaseConfig.client
+          .from('profiles')
+          .update(updates)
+          .eq('id', user.id);
+
+      state = const AsyncValue.data(null);
+      return (true, null);
+    } catch (e, st) {
+      state = AsyncValue.error(e.toString(), st);
+      return (false, e.toString());
+    }
+  }
 }
 
 final authNotifierProvider =

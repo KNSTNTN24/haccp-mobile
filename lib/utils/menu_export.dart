@@ -25,6 +25,8 @@ Future<Uint8List> generateMenuPdf({
     RecipeCategory.side,
     RecipeCategory.sauce,
     RecipeCategory.drink,
+    RecipeCategory.cocktail,
+    RecipeCategory.beverage,
     RecipeCategory.other,
   ];
 
@@ -136,7 +138,8 @@ String generateMenuCsv({
 
   final categoryOrder = [
     RecipeCategory.starter, RecipeCategory.main, RecipeCategory.dessert,
-    RecipeCategory.side, RecipeCategory.sauce, RecipeCategory.drink, RecipeCategory.other,
+    RecipeCategory.side, RecipeCategory.sauce, RecipeCategory.drink,
+    RecipeCategory.cocktail, RecipeCategory.beverage, RecipeCategory.other,
   ];
 
   for (final cat in categoryOrder) {

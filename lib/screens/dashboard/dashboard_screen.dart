@@ -4,8 +4,8 @@ import 'package:figma_squircle/figma_squircle.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../config/theme.dart';
-import '../../models/profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 
@@ -14,54 +14,45 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(dashboardStatsProvider);
+    final dataAsync = ref.watch(dashboardDataProvider);
     final profile = ref.watch(profileProvider).value;
+    final isManager = profile?.isManager ?? false;
 
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: () async => ref.invalidate(dashboardStatsProvider),
+      onRefresh: () async => ref.invalidate(dashboardDataProvider),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            // Body
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: statsAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.only(top: 80),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                      strokeWidth: 2.5,
-                    ),
-                  ),
-                ),
-                error: (e, _) => _ErrorBox(message: '$e'),
-                data: (stats) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Daily Diary
-                    GestureDetector(
-                      onTap: () => context.go('/diary'),
-                      child: _DailyProgress(stats: stats),
-                    ),
-                    const SizedBox(height: 28),
-                    _SectionLabel('Overview'),
-                    const SizedBox(height: 14),
-                    _StatsGrid(stats: stats),
-                    const SizedBox(height: 28),
-                    _SectionLabel('Quick Actions'),
-                    const SizedBox(height: 14),
-                    _QuickActions(),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+          child: dataAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: 80),
+              child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5)),
             ),
-          ],
+            error: (e, _) => _ErrorBox(message: '$e'),
+            data: (data) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── My Tasks ──
+                _MyTasksBlock(data: data),
+                const SizedBox(height: 20),
+
+                // ── Team Tasks (managers only) ──
+                if (isManager && data.teamTasks.isNotEmpty) ...[
+                  _TeamTasksBlock(teamTasks: data.teamTasks),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Open Incidents ──
+                _IncidentsBlock(incidents: data.openIncidents),
+                const SizedBox(height: 20),
+
+                // ── Notifications ──
+                _NotificationsBlock(notifications: data.recentNotifications),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -69,119 +60,15 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────
-//  HEADER
+//  MY TASKS
 // ─────────────────────────────────────────────
 
-class _Header extends StatelessWidget {
-  final Profile? profile;
-  const _Header({this.profile});
-
-  String get _greeting {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
+class _MyTasksBlock extends StatelessWidget {
+  final DashboardData data;
+  const _MyTasksBlock({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final name = profile?.fullName?.split(' ').first ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$_greeting${name.isNotEmpty ? ',' : ''}',
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.midText,
-                  ),
-                ),
-                if (name.isNotEmpty)
-                  Text(
-                    name,
-                    style: GoogleFonts.inter(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.darkText,
-                      height: 1.2,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Avatar
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primaryPale,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  SECTION LABEL
-// ─────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: const TextStyle(
-        fontFamily: '.SF Pro Text',
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: AppColors.lightText,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  DAILY PROGRESS
-// ─────────────────────────────────────────────
-
-class _DailyProgress extends StatelessWidget {
-  final DashboardStats stats;
-  const _DailyProgress({required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    final tasks = [
-      _Task('Opening check', stats.openingDone),
-      _Task('Closing check', stats.closingDone),
-      _Task('Diary signed', stats.diarySigned),
-    ];
-    final done = tasks.where((t) => t.done).length;
-    final progress = done / tasks.length;
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: ShapeDecoration(
@@ -195,29 +82,23 @@ class _DailyProgress extends StatelessWidget {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row
           Row(
             children: [
-              // Ring
               SizedBox(
-                width: 56,
-                height: 56,
+                width: 52, height: 52,
                 child: CustomPaint(
                   painter: _RingPainter(
-                    progress: progress,
+                    progress: data.progress,
                     trackColor: Colors.white.withValues(alpha: 0.2),
                     fillColor: Colors.white,
-                    strokeWidth: 5,
+                    strokeWidth: 4.5,
                   ),
                   child: Center(
                     child: Text(
-                      '$done/${tasks.length}',
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                      '${data.completedCount}/${data.totalCount}',
+                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
                     ),
                   ),
                 ),
@@ -227,79 +108,306 @@ class _DailyProgress extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Today's Tasks",
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
+                    Text("Today's Tasks", style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
                     const SizedBox(height: 2),
                     Text(
-                      done == tasks.length
+                      data.completedCount == data.totalCount
                           ? 'All done! Great job.'
-                          : '${tasks.length - done} remaining',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
+                          : '${data.totalCount - data.completedCount} remaining',
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          // Task rows
-          ...tasks.map((t) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+          if (data.myTasks.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ...data.myTasks.map((task) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: GestureDetector(
+                onTap: () => context.go('/checklists/${task.templateId}'),
                 child: Row(
                   children: [
                     Container(
-                      width: 22,
-                      height: 22,
+                      width: 22, height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: t.done
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.15),
-                        border: t.done
-                            ? null
-                            : Border.all(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                width: 1.5),
+                        color: task.isCompleted ? Colors.white : Colors.white.withValues(alpha: 0.15),
+                        border: task.isCompleted ? null : Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
                       ),
-                      child: t.done
-                          ? const Icon(Icons.check_rounded,
-                              size: 14, color: Color(0xFF059669))
+                      child: task.isCompleted
+                          ? const Icon(Icons.check_rounded, size: 14, color: Color(0xFF059669))
                           : null,
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      t.label,
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: t.done ? FontWeight.w600 : FontWeight.w400,
-                        color: t.done
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.65),
+                    Expanded(
+                      child: Text(
+                        task.templateName,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: task.isCompleted ? FontWeight.w600 : FontWeight.w400,
+                          color: task.isCompleted ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                          decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                          decorationColor: Colors.white.withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              )),
+              ),
+            )),
+          ] else ...[
+            const SizedBox(height: 12),
+            Text('No checklists assigned', style: GoogleFonts.inter(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Task {
-  final String label;
-  final bool done;
-  const _Task(this.label, this.done);
+// ─────────────────────────────────────────────
+//  TEAM TASKS (manager/owner)
+// ─────────────────────────────────────────────
+
+class _TeamTasksBlock extends StatelessWidget {
+  final List<TeamMemberTasks> teamTasks;
+  const _TeamTasksBlock({required this.teamTasks});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: SmoothRectangleBorder(
+          borderRadius: SmoothBorderRadius(cornerRadius: 20, cornerSmoothing: 0.6),
+          side: const BorderSide(color: Color(0xFFEDE9E3)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.people_rounded, size: 20, color: const Color(0xFF7C3AED)),
+              const SizedBox(width: 8),
+              Text('Team Tasks', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...teamTasks.map((member) {
+            final progressVal = member.total == 0 ? 0.0 : member.completed / member.total;
+            final initial = member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : '?';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: const BoxDecoration(color: AppColors.primaryPale, shape: BoxShape.circle),
+                    child: Center(child: Text(initial, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary))),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(member.fullName, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText)),
+                            const SizedBox(width: 8),
+                            Text('${member.completed}/${member.total}', style: GoogleFonts.inter(fontSize: 12, color: AppColors.midText)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progressVal,
+                            minHeight: 4,
+                            backgroundColor: const Color(0xFFE5E7EB),
+                            valueColor: AlwaysStoppedAnimation(
+                              progressVal >= 1.0 ? AppColors.primary : const Color(0xFFD97706),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  OPEN INCIDENTS
+// ─────────────────────────────────────────────
+
+class _IncidentsBlock extends StatelessWidget {
+  final List incidents;
+  const _IncidentsBlock({required this.incidents});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: SmoothRectangleBorder(
+          borderRadius: SmoothBorderRadius(cornerRadius: 20, cornerSmoothing: 0.6),
+          side: const BorderSide(color: Color(0xFFEDE9E3)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => context.go('/incidents'),
+            child: Row(
+              children: [
+                Icon(Icons.warning_rounded, size: 20, color: incidents.isEmpty ? AppColors.midText : const Color(0xFFC2410C)),
+                const SizedBox(width: 8),
+                Text('Open Incidents', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+                const Spacer(),
+                if (incidents.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFFFFF1E6), borderRadius: BorderRadius.circular(8)),
+                    child: Text('${incidents.length}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFC2410C))),
+                  ),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.lightText),
+              ],
+            ),
+          ),
+          if (incidents.isEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text('No open incidents', style: GoogleFonts.inter(fontSize: 14, color: AppColors.midText)),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            ...incidents.take(3).map((incident) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+                onTap: () => context.go('/incidents'),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8, height: 8,
+                      decoration: const BoxDecoration(color: Color(0xFFC2410C), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        incident.description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(fontSize: 14, color: AppColors.darkText),
+                      ),
+                    ),
+                    Text(
+                      DateFormat('dd MMM').format(DateTime.parse(incident.date)),
+                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.lightText),
+                    ),
+                  ],
+                ),
+              ),
+            )),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+class _NotificationsBlock extends StatelessWidget {
+  final List notifications;
+  const _NotificationsBlock({required this.notifications});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: SmoothRectangleBorder(
+          borderRadius: SmoothBorderRadius(cornerRadius: 20, cornerSmoothing: 0.6),
+          side: const BorderSide(color: Color(0xFFEDE9E3)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => context.go('/notifications'),
+            child: Row(
+              children: [
+                Icon(Icons.notifications_rounded, size: 20, color: notifications.isEmpty ? AppColors.midText : const Color(0xFFD97706)),
+                const SizedBox(width: 8),
+                Text('Notifications', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+                const Spacer(),
+                if (notifications.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(8)),
+                    child: Text('${notifications.length}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFD97706))),
+                  ),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.lightText),
+              ],
+            ),
+          ),
+          if (notifications.isEmpty) ...[
+            const SizedBox(height: 12),
+            Text('No new notifications', style: GoogleFonts.inter(fontSize: 14, color: AppColors.midText)),
+          ] else ...[
+            const SizedBox(height: 12),
+            ...notifications.take(3).map((n) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 8, height: 8,
+                    margin: const EdgeInsets.only(top: 6),
+                    decoration: const BoxDecoration(color: Color(0xFFD97706), shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(n.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText)),
+                        Text(n.message, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(fontSize: 13, color: AppColors.midText)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -312,12 +420,7 @@ class _RingPainter extends CustomPainter {
   final Color fillColor;
   final double strokeWidth;
 
-  _RingPainter({
-    required this.progress,
-    required this.trackColor,
-    required this.fillColor,
-    required this.strokeWidth,
-  });
+  _RingPainter({required this.progress, required this.trackColor, required this.fillColor, required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -329,7 +432,6 @@ class _RingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     canvas.drawCircle(center, radius, paint..color = trackColor);
-
     if (progress > 0) {
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
@@ -346,189 +448,6 @@ class _RingPainter extends CustomPainter {
 }
 
 // ─────────────────────────────────────────────
-//  STATS GRID
-// ─────────────────────────────────────────────
-
-class _StatsGrid extends StatelessWidget {
-  final DashboardStats stats;
-  const _StatsGrid({required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      _Stat('Checklists', stats.totalChecklists, Icons.checklist_rounded,
-          const Color(0xFF047857), const Color(0xFFECFDF5), '/checklists'),
-      _Stat('Completed', stats.todayCompletions, Icons.task_alt_rounded,
-          const Color(0xFF047857), const Color(0xFFECFDF5), '/diary'),
-      _Stat('Recipes', stats.totalRecipes, Icons.restaurant_rounded,
-          const Color(0xFF047857), const Color(0xFFECFDF5), '/recipes'),
-      _Stat('Incidents', stats.openIncidents, Icons.warning_rounded,
-          const Color(0xFFC2410C), const Color(0xFFFFF1E6), '/incidents'),
-      _Stat('Team', stats.teamMembers, Icons.people_rounded,
-          const Color(0xFF047857), const Color(0xFFECFDF5), '/team'),
-      _Stat('Alerts', stats.unreadNotifications, Icons.notifications_active_rounded,
-          const Color(0xFF047857), const Color(0xFFECFDF5), '/notifications'),
-    ];
-
-    return Column(
-      children: [
-        for (int r = 0; r < 3; r++) ...[
-          if (r > 0) const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _StatTile(data: items[r * 2])),
-              const SizedBox(width: 12),
-              Expanded(child: _StatTile(data: items[r * 2 + 1])),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _Stat {
-  final String label;
-  final int value;
-  final IconData icon;
-  final Color color;
-  final Color bg;
-  final String route;
-  const _Stat(this.label, this.value, this.icon, this.color, this.bg, this.route);
-}
-
-class _StatTile extends StatelessWidget {
-  final _Stat data;
-  const _StatTile({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasIssue = data.label == 'Incidents' && data.value > 0;
-
-    return GestureDetector(
-      onTap: () => context.go(data.route),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: ShapeDecoration(
-          color: Colors.white,
-          shape: SmoothRectangleBorder(
-            borderRadius: SmoothBorderRadius(cornerRadius: 22, cornerSmoothing: 0.6),
-            side: BorderSide(color: const Color(0xFFEDE9E3)),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(data.icon, size: 22, color: data.color),
-                if (hasIssue)
-                  Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(
-                      color: data.color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(
-              '${data.value}',
-              style: TextStyle(
-                fontFamily: '.SF Pro Display',
-                fontSize: 34,
-                fontWeight: FontWeight.w700,
-                color: AppColors.darkText,
-                height: 1,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              data.label,
-              style: TextStyle(
-                fontFamily: '.SF Pro Text',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.midText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  QUICK ACTIONS
-// ─────────────────────────────────────────────
-
-class _QuickActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final actions = [
-      _Action(Icons.checklist_rounded, 'Checklist', const Color(0xFF2563EB), '/checklists'),
-      _Action(Icons.edit_note_rounded, 'Diary', const Color(0xFF10B981), '/diary'),
-      _Action(Icons.egg_alt_rounded, 'Allergens', const Color(0xFFEA580C), '/menu'),
-      _Action(Icons.warning_rounded, 'Incident', const Color(0xFFDC2626), '/incidents'),
-    ];
-
-    return Row(
-      children: actions.asMap().entries.map((e) {
-        final i = e.key;
-        final a = e.value;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: i == 0 ? 0 : 6,
-              right: i == actions.length - 1 ? 0 : 6,
-            ),
-            child: GestureDetector(
-              onTap: () => context.go(a.route),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                decoration: ShapeDecoration(
-                  color: Colors.white,
-                  shape: SmoothRectangleBorder(
-                    borderRadius: SmoothBorderRadius(cornerRadius: 18, cornerSmoothing: 0.6),
-                    side: BorderSide(color: const Color(0xFFEDE9E3)),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(a.icon, size: 24, color: a.color),
-                    const SizedBox(height: 8),
-                    Text(
-                      a.label,
-                      style: TextStyle(
-                        fontFamily: '.SF Pro Text',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.darkText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _Action {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final String route;
-  const _Action(this.icon, this.label, this.color, this.route);
-}
-
-// ─────────────────────────────────────────────
 //  ERROR
 // ─────────────────────────────────────────────
 
@@ -540,18 +459,12 @@ class _ErrorBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.red50,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           const Icon(Icons.error_outline_rounded, color: AppColors.red600, size: 20),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(message,
-                style: GoogleFonts.inter(fontSize: 14, color: AppColors.red600)),
-          ),
+          Expanded(child: Text(message, style: GoogleFonts.inter(fontSize: 14, color: AppColors.red600))),
         ],
       ),
     );

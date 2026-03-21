@@ -27,6 +27,7 @@ import '../screens/documents/document_detail_screen.dart';
 import '../screens/ai_import/ai_import_screen.dart';
 import '../screens/deliveries/deliveries_screen.dart';
 import '../screens/deliveries/delivery_new_screen.dart';
+import '../screens/reports/reports_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../widgets/app_scaffold.dart';
 
@@ -94,6 +95,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/checklists/new',
         builder: (context, state) => const ChecklistManageScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checklists/edit/:id',
+        builder: (context, state) => ChecklistManageScreen(
+          templateId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -186,6 +194,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/ai-import',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: AiImportScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/reports',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ReportsScreen(),
             ),
           ),
           GoRoute(

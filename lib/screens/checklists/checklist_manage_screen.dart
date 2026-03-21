@@ -20,7 +20,8 @@ class _ChecklistItemEntry {
 }
 
 class ChecklistManageScreen extends ConsumerStatefulWidget {
-  const ChecklistManageScreen({super.key});
+  final String? templateId;
+  const ChecklistManageScreen({super.key, this.templateId});
 
   @override
   ConsumerState<ChecklistManageScreen> createState() =>
@@ -37,7 +38,57 @@ class _ChecklistManageScreenState
   String? _supervisorRole;
   SfbbSection _sfbbSection = SfbbSection.general;
   bool _saving = false;
+  bool _loadingTemplate = false;
   final List<_ChecklistItemEntry> _items = [];
+
+  bool get _isEditMode => widget.templateId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) _loadTemplate();
+  }
+
+  Future<void> _loadTemplate() async {
+    setState(() => _loadingTemplate = true);
+    try {
+      final response = await SupabaseConfig.client
+          .from('checklist_templates')
+          .select('*, checklist_template_items(*)')
+          .eq('id', widget.templateId!)
+          .single();
+      final template = ChecklistTemplate.fromJson(response);
+      _nameCtrl.text = template.name;
+      _descCtrl.text = template.description ?? '';
+      _frequency = template.frequency;
+      _assignedRoles.clear();
+      _assignedRoles.addAll(template.assignedRoles);
+      _supervisorRole = template.supervisorRole;
+      _sfbbSection = SfbbSection.fromString(template.sfbbSection ?? 'general');
+      _items.clear();
+      final sortedItems = List<ChecklistTemplateItem>.from(template.items ?? [])
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      for (final item in sortedItems) {
+        final entry = _ChecklistItemEntry()
+          ..name = item.name
+          ..type = item.itemType
+          ..required = item.required
+          ..minValue = item.minValue?.toString() ?? ''
+          ..maxValue = item.maxValue?.toString() ?? ''
+          ..unit = item.unit ?? '°C';
+        _items.add(entry);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error loading template: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _loadingTemplate = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -87,25 +138,42 @@ class _ChecklistManageScreenState
       final profile = ref.read(profileProvider).value;
       if (profile == null) return;
       final db = SupabaseConfig.client;
-      final templateResult = await db
-          .from('checklist_templates')
-          .insert({
-            'name': _nameCtrl.text.trim(),
-            'description': _descCtrl.text.trim().isEmpty
-                ? null
-                : _descCtrl.text.trim(),
-            'frequency': _frequency.name,
-            'assigned_roles': _assignedRoles.isEmpty
-                ? ['owner', 'manager', 'chef', 'kitchen_staff']
-                : _assignedRoles,
-            'business_id': profile.businessId,
-            'active': true,
-            'supervisor_role': _supervisorRole,
-            'sfbb_section': _sfbbSection.name,
-          })
-          .select('id')
-          .single();
-      final templateId = templateResult['id'] as String;
+
+      final templateData = {
+        'name': _nameCtrl.text.trim(),
+        'description': _descCtrl.text.trim().isEmpty
+            ? null
+            : _descCtrl.text.trim(),
+        'frequency': _frequency.name,
+        'assigned_roles': _assignedRoles.isEmpty
+            ? ['owner', 'manager', 'chef', 'kitchen_staff']
+            : _assignedRoles,
+        'supervisor_role': _supervisorRole,
+        'sfbb_section': _sfbbSection.name,
+      };
+
+      String templateId;
+      if (_isEditMode) {
+        await db.from('checklist_templates')
+            .update(templateData)
+            .eq('id', widget.templateId!);
+        templateId = widget.templateId!;
+        // Delete old items and re-insert
+        await db.from('checklist_template_items')
+            .delete()
+            .eq('template_id', templateId);
+      } else {
+        final templateResult = await db
+            .from('checklist_templates')
+            .insert({
+              ...templateData,
+              'business_id': profile.businessId,
+              'active': true,
+            })
+            .select('id')
+            .single();
+        templateId = templateResult['id'] as String;
+      }
 
       for (var i = 0; i < _items.length; i++) {
         final item = _items[i];
@@ -140,7 +208,7 @@ class _ChecklistManageScreenState
                 const Icon(Icons.check_circle_rounded,
                     color: Colors.white, size: 20),
                 const SizedBox(width: 10),
-                Text('Checklist created!',
+                Text(_isEditMode ? 'Checklist updated!' : 'Checklist created!',
                     style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
               ],
             ),
@@ -172,7 +240,7 @@ class _ChecklistManageScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('New Checklist',
+        title: Text(_isEditMode ? 'Edit Checklist' : 'New Checklist',
             style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -181,7 +249,9 @@ class _ChecklistManageScreenState
           },
         ),
       ),
-      body: Form(
+      body: _loadingTemplate
+        ? const Center(child: CircularProgressIndicator())
+        : Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
@@ -655,7 +725,7 @@ class _ChecklistManageScreenState
                           ),
                         )
                       : Text(
-                          'Save Checklist',
+                          _isEditMode ? 'Update Checklist' : 'Save Checklist',
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -909,6 +979,7 @@ class _ItemCard extends StatelessWidget {
 
             // Name field
             TextFormField(
+              initialValue: item.name.isEmpty ? null : item.name,
               style: GoogleFonts.inter(fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'What needs to be checked?',
@@ -1025,6 +1096,7 @@ class _ItemCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextFormField(
+                      initialValue: item.minValue.isEmpty ? null : item.minValue,
                       style: GoogleFonts.inter(fontSize: 14),
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
@@ -1052,6 +1124,7 @@ class _ItemCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextFormField(
+                      initialValue: item.maxValue.isEmpty ? null : item.maxValue,
                       style: GoogleFonts.inter(fontSize: 14),
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
@@ -1080,7 +1153,7 @@ class _ItemCard extends StatelessWidget {
                   SizedBox(
                     width: 70,
                     child: TextFormField(
-                      initialValue: '°C',
+                      initialValue: item.unit,
                       style: GoogleFonts.inter(fontSize: 14),
                       decoration: InputDecoration(
                         labelText: 'Unit',
